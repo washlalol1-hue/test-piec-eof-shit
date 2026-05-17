@@ -17,7 +17,7 @@
   <div id="appRoot"></div>
 
   <template id="pageContent">
-    <h1 class="page-title">Withdraw (Demo)</h1>
+    <h1 class="page-title">Withdraw</h1>
 
     <div class="grid grid-2 mb-16">
       <div class="stat">
@@ -46,8 +46,8 @@
           </div>
         </div>
         <div class="field">
-          <label>Withdrawal password (demo)</label>
-          <input class="input" id="wdPw" type="password" placeholder="Any text - not validated" required />
+          <label>Withdrawal password</label>
+          <input class="input" id="wdPw" type="password" inputmode="numeric" maxlength="8" placeholder="Required only if you set one in Settings" />
         </div>
         <button class="btn btn-primary" type="submit">Submit withdrawal (Demo)</button>
       </form>
@@ -125,7 +125,8 @@
       e.preventDefault();
       const amt  = parseFloat(document.getElementById("wdAmt").value || "0");
       const addr = document.getElementById("wdAddr").value.trim() || "demo-addr-xxxx";
-      const r = DEMO.api.submitWithdraw(amt, addr);
+      const pw   = document.getElementById("wdPw").value;
+      const r = DEMO.api.submitWithdraw(amt, addr, pw);
       if (!r.ok) { UI.toast(r.error); return; }
       e.target.reset();
       render();

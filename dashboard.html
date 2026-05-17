@@ -69,7 +69,7 @@
       <div class="stat">
         <div class="label">Referrals</div>
         <div class="value" id="refCount">0</div>
-        <div class="delta">L1 (demo data)</div>
+        <div class="delta">L1 referrals (live count)</div>
       </div>
     </div>
 
@@ -180,7 +180,7 @@
       document.getElementById("todayEarn").textContent = "$" + u.todayEarnings.toFixed(2);
       document.getElementById("totalEarn").textContent = "$" + u.totalEarnings.toFixed(2);
       document.getElementById("doneTasks").textContent = u.completedTasks;
-      document.getElementById("refCount").textContent  = u.referrals;
+      document.getElementById("refCount").textContent  = DEMO.referrals.length;
       document.getElementById("todayDelta").textContent =
         v ? `${doneToday} / ${v.daily} tasks today` : "Buy a package to start";
 

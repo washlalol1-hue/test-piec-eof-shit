@@ -1,7 +1,18 @@
 <!--
   Settings - T-Video Media Demo
-  Educational only. Changes are stored in localStorage to keep the
-  demo feeling responsive, but nothing is sent to a backend.
+
+  All changes are stored in localStorage and applied immediately:
+   - Profile (username + email + avatar) feeds the dashboard, sidebar
+     identity, and regenerates the invite code.
+   - Withdrawal password becomes required on the Withdraw page if set.
+   - Theme switches between dark and midnight without reloading.
+   - Notification toggles persist; an educational note explains how
+     real platforms abuse the same toggles to drive engagement.
+   - The "Admin access" section unlocks admin.html for this session
+     using a demo password (printed inline so users can try it).
+   - The Danger zone resets local state.
+
+  No real backend, no real auth, no real notifications.
 -->
 <!doctype html>
 <html lang="en">
@@ -15,52 +26,101 @@
   <div id="appRoot"></div>
 
   <template id="pageContent">
-    <h1 class="page-title">Settings (Demo)</h1>
+    <h1 class="page-title">Settings</h1>
 
-    <div class="grid grid-2 mb-16">
-      <!-- Profile -->
-      <div class="card">
-        <h3 class="mt-0">Profile information</h3>
-        <form id="profileForm" autocomplete="off" novalidate>
-          <div class="field">
-            <label>Username</label>
-            <input class="input" id="s_username" />
-          </div>
-          <div class="field">
-            <label>Email or phone</label>
-            <input class="input" id="s_email" />
-          </div>
-          <button type="submit" class="btn btn-primary">Save (Demo)</button>
-        </form>
+    <!-- Account summary -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">👤</div>
+        <div>
+          <h3>Account</h3>
+          <div class="desc">Read-only summary of your demo account.</div>
+        </div>
       </div>
-
-      <!-- Password / withdrawal password -->
-      <div class="card">
-        <h3 class="mt-0">Security (Demo)</h3>
-        <form id="pwForm" autocomplete="off" novalidate>
-          <div class="field">
-            <label>Current password</label>
-            <input class="input" type="password" placeholder="Any text - not validated" />
-          </div>
-          <div class="field">
-            <label>New password</label>
-            <input class="input" type="password" placeholder="Any text - not validated" />
-          </div>
-          <div class="field">
-            <label>New withdrawal password</label>
-            <input class="input" type="password" placeholder="Any text - not validated" />
-          </div>
-          <button type="submit" class="btn btn-primary">Update (Demo)</button>
-        </form>
+      <div class="grid grid-3">
+        <div>
+          <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Username</div>
+          <div style="font-weight:700;font-size:16px;" id="acctUser">—</div>
+        </div>
+        <div>
+          <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Active package</div>
+          <div style="font-weight:700;font-size:16px;" id="acctPkg">—</div>
+        </div>
+        <div>
+          <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Demo balance</div>
+          <div style="font-weight:700;font-size:16px;color:var(--primary);" id="acctBal">$0.00</div>
+        </div>
       </div>
     </div>
 
-    <div class="grid grid-2 mb-16">
-      <!-- Preferences -->
-      <div class="card">
-        <h3 class="mt-0">Preferences</h3>
+    <!-- Profile -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">✏️</div>
+        <div>
+          <h3>Profile information</h3>
+          <div class="desc">
+            Changing your username regenerates your demo invite code so it
+            reflects the new name.
+          </div>
+        </div>
+      </div>
+      <form id="profileForm" autocomplete="off" novalidate>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="s_username">Username</label>
+            <input class="input" id="s_username" maxlength="24" />
+          </div>
+          <div class="field">
+            <label for="s_email">Email or phone</label>
+            <input class="input" id="s_email" maxlength="64" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save profile</button>
+      </form>
+    </div>
+
+    <!-- Security -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">🔒</div>
+        <div>
+          <h3>Security</h3>
+          <div class="desc">
+            Set an optional 4–8 digit demo withdrawal password. If set, the
+            Withdraw page will require it before accepting a request.
+          </div>
+        </div>
+      </div>
+      <form id="pwForm" autocomplete="off" novalidate>
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Login password (demo)</label>
+            <input class="input" type="password" placeholder="Any text — not validated" />
+            <span class="muted" style="font-size:12px;">Demo only — never leaves your browser.</span>
+          </div>
+          <div class="field">
+            <label for="s_wdpw">Withdrawal password (4–8 digits)</label>
+            <input class="input" id="s_wdpw" type="password" inputmode="numeric" pattern="\d*" maxlength="8" placeholder="Leave empty to disable" />
+            <span class="muted" style="font-size:12px;" id="wdpwState"></span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Update security settings</button>
+      </form>
+    </div>
+
+    <!-- Preferences -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">🎨</div>
+        <div>
+          <h3>Preferences</h3>
+          <div class="desc">Applied immediately and remembered for next time.</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
         <div class="field">
-          <label>Language</label>
+          <label for="s_lang">Language</label>
           <select id="s_lang">
             <option>English</option>
             <option>Spanish</option>
@@ -70,46 +130,64 @@
             <option>Hindi</option>
             <option>Indonesian</option>
           </select>
+          <span class="muted" style="font-size:12px;">UI strings stay in English in this demo; the choice is just persisted.</span>
         </div>
         <div class="field">
-          <label>Theme</label>
+          <label for="s_theme">Theme</label>
           <select id="s_theme">
             <option value="dark">Dark (default)</option>
-            <option value="darker">Deep dark</option>
+            <option value="midnight">Midnight (deep dark)</option>
           </select>
+          <span class="muted" style="font-size:12px;">Switches in real-time — no reload needed.</span>
         </div>
-        <button class="btn btn-primary" id="prefBtn">Apply (Demo)</button>
-      </div>
-
-      <!-- Notifications -->
-      <div class="card">
-        <h3 class="mt-0">Notifications</h3>
-        <label class="row-flex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);">
-          <span>Task reminders</span>
-          <input type="checkbox" checked />
-        </label>
-        <label class="row-flex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);">
-          <span>VIP upgrade promotions</span>
-          <input type="checkbox" checked />
-        </label>
-        <label class="row-flex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);">
-          <span>Withdrawal updates</span>
-          <input type="checkbox" checked />
-        </label>
-        <label class="row-flex" style="justify-content:space-between;padding:8px 0;">
-          <span>Referral activity</span>
-          <input type="checkbox" />
-        </label>
       </div>
     </div>
 
-    <div class="card">
-      <h3 class="mt-0">Demo data</h3>
-      <p class="muted" style="font-size:14px;">
-        Reset the local demo state (balance, completed tasks, withdrawal
-        history). Useful for school presentations - it lets you reset the
-        site to its starting numbers between demos.
-      </p>
+    <!-- Notifications -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">🔔</div>
+        <div>
+          <h3>Notifications</h3>
+          <div class="desc">
+            Real reward platforms use these same categories to drive
+            engagement and urgency. Disabling them here only changes which
+            messages you'd see in the demo Messages page.
+          </div>
+        </div>
+      </div>
+      <div id="notifList"></div>
+    </div>
+
+    <!-- Admin access -->
+    <div class="section-card">
+      <div class="section-head">
+        <div class="ico">🛡️</div>
+        <div>
+          <h3>Admin access</h3>
+          <div class="desc">
+            The Admin demo page is hidden until you unlock it. Real
+            applications check this on the server — a sidebar that's just
+            "hidden" client-side would not be a real security boundary.
+          </div>
+        </div>
+      </div>
+      <div id="adminBlock"></div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="section-card" style="border-color: rgba(255,77,109,.35);">
+      <div class="section-head">
+        <div class="ico" style="background:rgba(255,77,109,.12);color:var(--danger);">⚠️</div>
+        <div>
+          <h3>Danger zone</h3>
+          <div class="desc">
+            Wipes balance, completed tasks, transactions, withdrawals,
+            referrals, and preferences from this browser. Useful between
+            presentations.
+          </div>
+        </div>
+      </div>
       <div class="row-flex">
         <button class="btn btn-warning" id="resetBtn">Reset demo data</button>
         <a class="btn btn-danger" href="index.html" id="logoutBtn">Logout (return to landing)</a>
@@ -118,8 +196,7 @@
 
     <div class="disclaimer mt-16">
       Educational demo for scam-awareness research. No real money, no real
-      accounts, no real rewards. All settings here are local-only and never
-      sent to a backend.
+      accounts, no real rewards. Settings are stored in this browser only.
     </div>
   </template>
 
@@ -128,38 +205,165 @@
   <script>
     UI.renderShell("Settings");
 
-    document.getElementById("s_username").value = DEMO.user.username;
-    document.getElementById("s_email").value = DEMO.user.email;
+    function $(id) { return document.getElementById(id); }
 
-    document.getElementById("profileForm").addEventListener("submit", (e) => {
+    function renderAccount() {
+      const u = DEMO.user;
+      const v = DEMO.api.getActiveVip();
+      $("acctUser").textContent = u.username;
+      $("acctPkg").textContent  = v ? v.name : "None — buy a package";
+      $("acctBal").textContent  = "$" + u.balance.toFixed(2);
+    }
+
+    function renderProfile() {
+      $("s_username").value = DEMO.user.username;
+      $("s_email").value    = DEMO.user.email;
+    }
+
+    function renderSecurity() {
+      const has = !!DEMO.user.withdrawalPassword;
+      $("wdpwState").textContent = has
+        ? "Withdrawal password is set. Leave the field empty and save to remove it."
+        : "No withdrawal password set yet (optional).";
+    }
+
+    function renderPrefs() {
+      $("s_lang").value  = DEMO.user.preferences.language || "English";
+      $("s_theme").value = DEMO.user.preferences.theme    || "dark";
+    }
+
+    function renderNotifications() {
+      const opts = [
+        { key: "taskReminders", label: "Task reminders",        desc: "Daily nudges to complete your video tasks." },
+        { key: "vipPromos",     label: "VIP upgrade promotions", desc: "Limited-time package offers (a classic upsell pattern)." },
+        { key: "withdrawal",    label: "Withdrawal updates",    desc: "Status changes on pending withdrawals." },
+        { key: "referral",      label: "Referral activity",     desc: "When someone signs up with your code or earns." },
+      ];
+      const wrap = $("notifList");
+      wrap.innerHTML = "";
+      const settings = DEMO.user.preferences.notifications;
+      opts.forEach(o => {
+        const row = document.createElement("div");
+        row.className = "toggle-row";
+        row.innerHTML = `
+          <div>
+            <div class="label">${o.label}</div>
+            <div class="desc">${o.desc}</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" data-key="${o.key}" ${settings[o.key] ? "checked" : ""} />
+            <span class="slider"></span>
+          </label>
+        `;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll('input[type=checkbox]').forEach(box => {
+        box.addEventListener("change", () => {
+          DEMO.api.setPreferences({
+            notifications: { [box.dataset.key]: box.checked },
+          });
+          UI.toast("Notification preference saved");
+        });
+      });
+    }
+
+    function renderAdminBlock() {
+      const block = $("adminBlock");
+      if (DEMO.isAdmin) {
+        block.innerHTML = `
+          <div class="notice info">
+            <strong>Admin unlocked</strong> for this browser session. The
+            Admin link is now visible in the sidebar and the Admin demo
+            page is reachable.
+          </div>
+          <div class="row-flex">
+            <a class="btn btn-primary" href="admin.html">Open admin demo</a>
+            <button class="btn" id="lockAdminBtn">Lock admin</button>
+          </div>
+        `;
+        $("lockAdminBtn").addEventListener("click", () => {
+          DEMO.api.lockAdmin();
+          UI.toast("Admin locked");
+          location.reload();
+        });
+      } else {
+        block.innerHTML = `
+          <form id="adminForm" autocomplete="off" novalidate>
+            <div class="field">
+              <label for="adminPw">Demo admin password</label>
+              <input class="input" id="adminPw" type="password" placeholder="demo-admin" />
+              <span class="muted" style="font-size:12px;">
+                Educational demo — the password is literally
+                <code>demo-admin</code> and is shown here on purpose.
+              </span>
+            </div>
+            <button type="submit" class="btn btn-primary">Unlock admin demo</button>
+            <span class="muted" style="margin-left:8px;font-size:13px;" id="adminErr"></span>
+          </form>
+        `;
+        $("adminForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const r = DEMO.api.unlockAdmin($("adminPw").value);
+          if (!r.ok) {
+            $("adminErr").textContent = r.error;
+            $("adminErr").style.color = "var(--danger)";
+            return;
+          }
+          UI.toast("Admin unlocked for this session");
+          location.reload();
+        });
+      }
+    }
+
+    // ----- Wire forms -----
+    $("profileForm").addEventListener("submit", (e) => {
       e.preventDefault();
       DEMO.api.setProfile({
-        username: document.getElementById("s_username").value,
-        email:    document.getElementById("s_email").value,
+        username: $("s_username").value,
+        email:    $("s_email").value,
       });
-      UI.toast("Profile saved (demo only)");
+      UI.toast("Profile saved");
+      renderAccount();
     });
 
-    document.getElementById("pwForm").addEventListener("submit", (e) => {
+    $("pwForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      UI.openModal("Password update (demo)",
-        "<p>Demo only. No password is stored or validated.</p>",
-        { confirmText: "OK" });
+      const r = DEMO.api.setWithdrawalPassword($("s_wdpw").value);
+      if (!r.ok) { UI.toast(r.error); return; }
+      $("s_wdpw").value = "";
+      renderSecurity();
+      UI.toast(DEMO.user.withdrawalPassword
+        ? "Withdrawal password updated"
+        : "Withdrawal password cleared");
     });
 
-    document.getElementById("prefBtn").addEventListener("click", () => {
-      UI.toast("Preferences applied (demo only)");
+    $("s_lang").addEventListener("change", () => {
+      DEMO.api.setPreferences({ language: $("s_lang").value });
+      UI.toast("Language saved");
+    });
+    $("s_theme").addEventListener("change", () => {
+      DEMO.api.setPreferences({ theme: $("s_theme").value });
+      UI.applyTheme($("s_theme").value);
+      UI.toast("Theme applied");
     });
 
-    document.getElementById("resetBtn").addEventListener("click", () => {
+    $("resetBtn").addEventListener("click", () => {
       UI.openModal(
         "Reset demo data?",
-        "<p>This clears the local demo state (balance, tasks, withdrawals). " +
-        "It does not contact any backend - there is no backend.</p>",
+        `<p>This clears local state — balance, tasks, transactions,
+         withdrawals, referrals, preferences. There is no backend, so
+         nothing is sent anywhere.</p>`,
         { confirmText: "Reset",
           onConfirm: () => { DEMO.resetUser(); location.reload(); } }
       );
     });
+
+    renderAccount();
+    renderProfile();
+    renderSecurity();
+    renderPrefs();
+    renderNotifications();
+    renderAdminBlock();
   </script>
 </body>
 </html>

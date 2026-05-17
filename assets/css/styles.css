@@ -25,6 +25,16 @@
   --topbar-h: 64px;
 }
 
+/* Deep-dark theme override (applied via <html data-theme="midnight">) */
+html[data-theme="midnight"] {
+  --bg-0: #02030a;
+  --bg-1: #06080f;
+  --bg-2: #0a0d18;
+  --bg-3: #11151f;
+  --line: #1a1f2e;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
@@ -570,3 +580,94 @@ tr:hover td { background: rgba(31,139,255,.04); }
 .mb-0 { margin-bottom: 0; } .mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; }
 .hidden { display: none !important; }
 hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+
+/* ---------- Settings page sections ---------- */
+.section-card {
+  background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.section-card + .section-card { margin-top: 16px; }
+.section-head {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;
+}
+.section-head .ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(0,224,255,.12); color: var(--primary);
+  display: grid; place-items: center; font-size: 18px; flex-shrink: 0;
+}
+.section-head h3 { margin: 0 0 4px; font-size: 16px; }
+.section-head .desc { color: var(--muted); font-size: 13px; }
+
+/* Toggle row used in preferences/notifications */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-row .label { font-weight: 600; font-size: 14px; }
+.toggle-row .desc { color: var(--muted); font-size: 12px; }
+
+/* Pill toggle (visual checkbox) */
+.switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute; inset: 0;
+  background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 999px; cursor: pointer; transition: background .2s;
+}
+.switch .slider::before {
+  content: ""; position: absolute; height: 18px; width: 18px;
+  left: 2px; top: 2px; background: var(--text);
+  border-radius: 50%; transition: transform .2s;
+}
+.switch input:checked + .slider {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border-color: transparent;
+}
+.switch input:checked + .slider::before {
+  transform: translateX(18px); background: #001218;
+}
+
+/* Lock card / gate */
+.lock-card {
+  text-align: center;
+  padding: 32px 24px;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 460px;
+  margin: 40px auto;
+}
+.lock-card .lock-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,176,32,.12); color: var(--warning);
+  display: grid; place-items: center; font-size: 26px;
+  margin: 0 auto 12px;
+}
+.lock-card h2 { margin: 0 0 6px; font-size: 20px; }
+.lock-card .sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+.lock-card .err {
+  margin-top: 12px; color: var(--danger); font-size: 13px; min-height: 18px;
+}
+
+/* Video task modal video */
+.task-video {
+  width: 100%; max-height: 280px; background: #000;
+  border-radius: 10px; display: block;
+}
+.video-fallback {
+  width: 100%; aspect-ratio: 16/9;
+  background: linear-gradient(135deg,#0b1830,#1a2238);
+  display: grid; place-items: center;
+  color: var(--primary); font-size: 36px; border-radius: 10px;
+}
+.reward-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,224,255,.1); color: var(--primary);
+  border: 1px solid rgba(0,224,255,.25);
+  padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 12px;
+}

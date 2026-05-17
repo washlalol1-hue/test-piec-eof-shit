@@ -1,60 +1,86 @@
 <!--
   Invite / Referral - T-Video Media Demo
-  Educational only. No real referral tracking.
+
+  Live data from STATE.referrals. The "Simulate" controls let the user
+  experience how a real referral system would feel - new sign-ups appear
+  in the list, an existing referral generates earnings, and 10% of those
+  earnings flow to the user's balance as an L1 commission.
+
+  Every interaction is local-only. No real referral tracking, no real
+  network requests, no real money.
 -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Invite · T-Video Media Demo</title>
+  <title>Invite friends · T-Video Media Demo</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
   <div id="appRoot"></div>
 
   <template id="pageContent">
-    <h1 class="page-title">Invite Friends (Demo)</h1>
+    <h1 class="page-title">Invite friends</h1>
 
     <div class="notice danger">
-      <strong>Educational warning:</strong> Referral systems can be used in
+      <strong>Educational warning:</strong> referral systems can be used in
       pyramid-style schemes where existing users are rewarded for bringing in
-      new users. When the platform's main income comes from new sign-ups
+      new users. When a platform's main income comes from new sign-ups
       rather than a real product, that is a classic pyramid red flag.
     </div>
 
+    <!-- Invite code + link -->
     <div class="grid grid-2 mb-16">
       <div class="card">
         <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Your demo invitation code</div>
-        <div style="font-size:24px;font-weight:800;color:var(--primary);" id="codeText">TVMD-9F4K2X</div>
+        <div style="font-size:24px;font-weight:800;color:var(--primary);" id="codeText">—</div>
         <div class="row-flex mt-8">
           <button class="btn" id="copyCodeBtn">Copy code</button>
+          <span class="muted" style="font-size:12px;" id="codeHint"></span>
         </div>
       </div>
       <div class="card">
         <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Demo referral link</div>
-        <div style="word-break:break-all;font-family:ui-monospace,monospace;font-size:14px;" id="linkText">
-          https://demo.example.test/r/TVMD-9F4K2X
-        </div>
+        <div style="word-break:break-all;font-family:ui-monospace,monospace;font-size:14px;" id="linkText">—</div>
         <div class="row-flex mt-8">
           <button class="btn btn-primary" id="copyLinkBtn">Copy link</button>
+          <span class="muted" style="font-size:12px;">No real domain — does not lead anywhere.</span>
         </div>
       </div>
     </div>
 
+    <!-- Live stats -->
     <div class="grid grid-4 mb-16">
-      <div class="stat"><div class="label">Total team</div><div class="value" id="teamTotal">0</div></div>
-      <div class="stat"><div class="label">Active (demo)</div><div class="value" id="teamActive">0</div></div>
-      <div class="stat"><div class="label">L1 commission</div><div class="value">10%</div><div class="delta">demo rate</div></div>
-      <div class="stat"><div class="label">Team earnings</div><div class="value" id="teamEarn">$0.00</div><div class="delta">all-time (demo)</div></div>
+      <div class="stat">
+        <div class="label">Total team</div>
+        <div class="value" id="teamTotal">0</div>
+        <div class="delta" id="teamGrowth">live count</div>
+      </div>
+      <div class="stat">
+        <div class="label">Active</div>
+        <div class="value" id="teamActive">0</div>
+        <div class="delta" id="teamInactiveLine">— inactive</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total team earnings</div>
+        <div class="value" id="teamEarn">$0.00</div>
+        <div class="delta">demo, all-time</div>
+      </div>
+      <div class="stat">
+        <div class="label">Your L1 commissions</div>
+        <div class="value" id="myCommissions">$0.00</div>
+        <div class="delta">credited to your balance</div>
+      </div>
     </div>
 
+    <!-- Commission cards -->
     <div class="grid grid-3 mb-16">
       <div class="card">
         <h3 class="mt-0">Level 1</h3>
         <div class="muted">Direct invites</div>
         <div style="font-size:22px;font-weight:800;color:var(--primary);">10%</div>
-        <div class="muted" style="font-size:13px;">of fake task earnings (demo)</div>
+        <div class="muted" style="font-size:13px;">of fake task earnings</div>
       </div>
       <div class="card">
         <h3 class="mt-0">Level 2</h3>
@@ -70,8 +96,30 @@
       </div>
     </div>
 
+    <!-- Demo controls -->
+    <div class="card mb-16">
+      <div class="row-flex space-between mb-8">
+        <h3 class="mt-0 mb-0">Demo controls</h3>
+        <span class="badge badge-warning">DEMO</span>
+      </div>
+      <p class="muted" style="font-size:13px;">
+        Since there is no real backend, these buttons let you exercise the
+        referral system the way it would behave on a real platform — adding
+        a new sign-up, or simulating an existing referral earning rewards
+        (which credits a 10% L1 commission to your balance).
+      </p>
+      <div class="row-flex">
+        <button class="btn btn-primary" id="addRefBtn">Simulate new sign-up</button>
+        <button class="btn" id="simBtn">Simulate referral activity</button>
+      </div>
+    </div>
+
+    <!-- Live referral table -->
     <div class="card">
-      <h3 class="mt-0">Demo referral list</h3>
+      <div class="row-flex space-between mb-8">
+        <h3 class="mt-0 mb-0">Your referrals (live)</h3>
+        <span class="muted" style="font-size:12px;" id="lastEvent"></span>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -93,44 +141,83 @@
   <script>
     UI.renderShell("Invite");
 
-    const u = DEMO.user;
-    document.getElementById("codeText").textContent = u.inviteCode;
-    document.getElementById("linkText").textContent =
-      "https://demo.example.test/r/" + u.inviteCode;
-
-    function copy(text) {
+    function copy(text, friendlyName) {
       try {
         navigator.clipboard.writeText(text);
-        UI.toast("Copied (demo) - this is not a real link");
+        UI.toast(friendlyName + " copied");
       } catch {
-        UI.toast("Demo only - copy not supported");
+        UI.toast("Copy not supported in this browser");
       }
     }
-    document.getElementById("copyCodeBtn").addEventListener("click", () => copy(u.inviteCode));
-    document.getElementById("copyLinkBtn").addEventListener("click", () =>
-      copy("https://demo.example.test/r/" + u.inviteCode));
 
-    // Stats
-    const total = DEMO.referrals.length;
-    const active = DEMO.referrals.filter(r => r.status === "Active").length;
-    const earnings = DEMO.referrals.reduce((s, r) => s + r.contribution, 0);
-    document.getElementById("teamTotal").textContent = total;
-    document.getElementById("teamActive").textContent = active;
-    document.getElementById("teamEarn").textContent = "$" + earnings.toFixed(2);
+    function render() {
+      const code = DEMO.api.getInviteCode();
+      document.getElementById("codeText").textContent = code;
+      document.getElementById("linkText").textContent = "https://demo.example.test/r/" + code;
+      document.getElementById("codeHint").textContent =
+        "Generated from your username — change it in Settings to refresh.";
 
-    const tbody = document.getElementById("refRows");
-    DEMO.referrals.forEach(r => {
-      const tr = document.createElement("tr");
-      const cls = r.status === "Active" ? "badge-success" : "badge-muted";
-      tr.innerHTML = `
-        <td>${r.username}</td>
-        <td>${r.joined}</td>
-        <td><span class="badge badge-gold">VIP ${r.vip}</span></td>
-        <td>$${r.contribution.toFixed(2)}</td>
-        <td><span class="badge ${cls}">${r.status}</span></td>
-      `;
-      tbody.appendChild(tr);
+      const refs = DEMO.referrals;
+      const total = refs.length;
+      const active = refs.filter(r => r.status === "Active").length;
+      const inactive = total - active;
+      const teamEarn = refs.reduce((s, r) => s + r.contribution, 0);
+      const myCommissions = DEMO.transactions
+        .filter(t => t.type === "Referral")
+        .reduce((s, t) => s + t.amount, 0);
+
+      document.getElementById("teamTotal").textContent = total;
+      document.getElementById("teamActive").textContent = active;
+      document.getElementById("teamInactiveLine").textContent = inactive + " inactive";
+      document.getElementById("teamEarn").textContent = "$" + teamEarn.toFixed(2);
+      document.getElementById("myCommissions").textContent = "$" + myCommissions.toFixed(2);
+
+      const tbody = document.getElementById("refRows");
+      tbody.innerHTML = "";
+      if (!refs.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="muted center">No referrals yet — use the demo control above to add one.</td></tr>`;
+        return;
+      }
+      refs.forEach(r => {
+        const cls = r.status === "Active" ? "badge-success" : "badge-muted";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.username}</td>
+          <td>${r.joined}</td>
+          <td><span class="badge badge-gold">VIP ${r.vip}</span></td>
+          <td>$${r.contribution.toFixed(2)}</td>
+          <td><span class="badge ${cls}">${r.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById("copyCodeBtn").addEventListener("click",
+      () => copy(DEMO.api.getInviteCode(), "Code"));
+    document.getElementById("copyLinkBtn").addEventListener("click",
+      () => copy("https://demo.example.test/r/" + DEMO.api.getInviteCode(), "Link"));
+
+    document.getElementById("addRefBtn").addEventListener("click", () => {
+      const r = DEMO.api.addReferral();
+      document.getElementById("lastEvent").textContent =
+        "+ " + r.referral.username + " just signed up using your code";
+      render();
     });
+
+    document.getElementById("simBtn").addEventListener("click", () => {
+      const r = DEMO.api.simulateReferralActivity();
+      if (!r.ok) {
+        UI.toast(r.error);
+        return;
+      }
+      document.getElementById("lastEvent").textContent =
+        r.who + " earned a reward — you got +$" + r.commission.toFixed(2) + " L1 commission";
+      render();
+    });
+
+    render();
+    window.addEventListener("focus", render);
+    window.addEventListener("storage", render);
   </script>
 </body>
 </html>

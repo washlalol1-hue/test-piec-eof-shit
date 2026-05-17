@@ -1,76 +1,84 @@
 /* =============================================================
    T-Video Media Demo - Shared App Script
    - Renders sidebar/topbar for dashboard pages
+   - Hides the Admin link unless the demo admin is unlocked
+   - Applies the saved theme to <html>
    - Provides modal + toast helpers
-   - All interactions are local demo only
+   All interactions are local demo only.
    ============================================================= */
 
 (function () {
-  // ---------- Sidebar definition ----------
+  // Apply theme as early as possible so the page does not flash.
+  try {
+    const raw = JSON.parse(localStorage.getItem("tvmd_state") || "null");
+    const theme = (raw && raw.preferences && raw.preferences.theme) || "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch {}
+
   const NAV = [
-    { href: "dashboard.html",     icon: "🏠", label: "Home" },
-    { href: "tasks.html",         icon: "🎬", label: "Video Tasks" },
-    { href: "vip.html",           icon: "👑", label: "VIP Levels" },
-    { href: "recharge.html",      icon: "💳", label: "Recharge" },
-    { href: "withdraw.html",      icon: "💸", label: "Withdraw" },
-    { href: "invite.html",        icon: "🤝", label: "Invite" },
-    { href: "team.html",          icon: "👥", label: "Team" },
-    { href: "transactions.html",  icon: "📜", label: "Transaction History" },
-    { href: "messages.html",      icon: "🔔", label: "Messages" },
-    { href: "support.html",       icon: "💬", label: "Support" },
-    { href: "scam-analysis.html", icon: "🛡️", label: "Scam Analysis" },
-    { href: "settings.html",      icon: "⚙️", label: "Settings" },
-    { href: "admin.html",         icon: "🧪", label: "Admin Demo" },
+    { href: "dashboard.html",     icon: "\uD83C\uDFE0", label: "Home" },
+    { href: "tasks.html",         icon: "\uD83C\uDFAC", label: "Video tasks" },
+    { href: "vip.html",           icon: "\uD83D\uDC51", label: "VIP packages" },
+    { href: "recharge.html",      icon: "\uD83D\uDCB3", label: "Recharge" },
+    { href: "withdraw.html",      icon: "\uD83D\uDCB8", label: "Withdraw" },
+    { href: "invite.html",        icon: "\uD83E\uDD1D", label: "Invite" },
+    { href: "team.html",          icon: "\uD83D\uDC65", label: "Team" },
+    { href: "transactions.html",  icon: "\uD83D\uDCDC", label: "Transactions" },
+    { href: "messages.html",      icon: "\uD83D\uDD14", label: "Messages" },
+    { href: "support.html",       icon: "\uD83D\uDCAC", label: "Support" },
+    { href: "scam-analysis.html", icon: "\uD83D\uDEE1\uFE0F", label: "Scam analysis" },
+    { href: "settings.html",      icon: "\u2699\uFE0F",  label: "Settings" },
+    { href: "admin.html",         icon: "\uD83E\uDDEA", label: "Admin", adminOnly: true },
   ];
 
-  // Bottom nav (mobile) - keep to 5 items
   const BOTTOM = [
-    { href: "dashboard.html",     icon: "🏠", label: "Home" },
-    { href: "tasks.html",         icon: "🎬", label: "Tasks" },
-    { href: "vip.html",           icon: "👑", label: "VIP" },
-    { href: "invite.html",        icon: "🤝", label: "Invite" },
-    { href: "settings.html",      icon: "⚙️", label: "Me" },
+    { href: "dashboard.html", icon: "\uD83C\uDFE0", label: "Home" },
+    { href: "tasks.html",     icon: "\uD83C\uDFAC", label: "Tasks" },
+    { href: "vip.html",       icon: "\uD83D\uDC51", label: "VIP" },
+    { href: "invite.html",    icon: "\uD83E\uDD1D", label: "Invite" },
+    { href: "settings.html",  icon: "\u2699\uFE0F", label: "Me" },
   ];
 
   function currentPage() {
-    const p = location.pathname.split("/").pop() || "dashboard.html";
-    return p;
+    return location.pathname.split("/").pop() || "dashboard.html";
+  }
+
+  function navItems() {
+    // Hide admin-only items unless the user has unlocked the admin gate
+    // OR they are currently on the admin page (so they see the active link).
+    return NAV.filter(n => !n.adminOnly || DEMO.isAdmin || currentPage() === n.href);
   }
 
   function renderShell(pageTitle) {
     const page = currentPage();
-    // NOTE: the .sidebar-backdrop element MUST live OUTSIDE the .app grid.
-    // If we render it as a sibling of .sidebar inside the grid container,
-    // it occupies column 2 of row 1 on desktop (where the grid only has
-    // 2 columns), pushing .main to a second row that sits below the
-    // sticky 100vh sidebar - so on full-screen the user sees only the
-    // sidebar and the rest of the page appears blank. Keeping the
-    // backdrop outside the grid avoids this entirely.
+
+    // .sidebar-backdrop must live OUTSIDE .app or it occupies a grid cell
+    // on desktop and pushes .main offscreen.
     const sidebarHtml = `
       <aside class="sidebar" id="sidebar">
         <a href="dashboard.html" class="brand">
           <span class="brand-mark">T</span>
-          <span>T-Video Media <small class="muted" style="font-size:10px;display:block;">Educational Demo</small></span>
+          <span>T-Video Media <small class="muted" style="font-size:10px;display:block;">Educational demo</small></span>
         </a>
         <nav>
-          ${NAV.map(n => `
+          ${navItems().map(n => `
             <a class="nav-link ${n.href === page ? "active" : ""}" href="${n.href}">
               <span class="ico">${n.icon}</span><span>${n.label}</span>
             </a>`).join("")}
           <a class="nav-link" href="index.html" id="logoutLink">
-            <span class="ico">🚪</span><span>Logout</span>
+            <span class="ico">\uD83D\uDEAA</span><span>Logout</span>
           </a>
         </nav>
       </aside>
     `;
     const topbarHtml = `
       <header class="topbar">
-        <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+        <button class="menu-btn" id="menuBtn" aria-label="Open menu">&#9776;</button>
         <div class="title">${pageTitle || ""}</div>
         <div class="spacer"></div>
         <span class="badge badge-warning" title="Educational demo only">DEMO</span>
-        <a href="messages.html" class="btn btn-sm btn-ghost" title="Notifications">🔔</a>
-        <a href="settings.html" class="btn btn-sm btn-ghost" title="Settings">⚙️</a>
+        <a href="messages.html" class="btn btn-sm btn-ghost" title="Notifications">\uD83D\uDD14</a>
+        <a href="settings.html" class="btn btn-sm btn-ghost" title="Settings">\u2699\uFE0F</a>
       </header>
     `;
     const bottomHtml = `
@@ -86,8 +94,8 @@
 
     const root = document.getElementById("appRoot");
     if (!root) return;
-    const contentTemplate = document.getElementById("pageContent");
-    const contentHtml = contentTemplate ? contentTemplate.innerHTML : "";
+    const tpl = document.getElementById("pageContent");
+    const contentHtml = tpl ? tpl.innerHTML : "";
 
     root.innerHTML = `
       <div class="app">
@@ -114,29 +122,25 @@
       <div class="toast" id="toast"></div>
     `;
 
-    // Wire up menu toggle
     const sb = document.getElementById("sidebar");
     const bd = document.getElementById("sbBackdrop");
     const mb = document.getElementById("menuBtn");
     if (mb) mb.addEventListener("click", () => { sb.classList.add("open"); bd.classList.add("open"); });
     if (bd) bd.addEventListener("click", () => { sb.classList.remove("open"); bd.classList.remove("open"); });
 
-    // Logout demo: clear demo state and return to landing
     const logout = document.getElementById("logoutLink");
     if (logout) logout.addEventListener("click", (e) => {
       e.preventDefault();
-      DEMO.resetUser();
+      DEMO.api.lockAdmin();
       location.href = "index.html";
     });
 
-    // Modal close
     document.getElementById("modalClose").addEventListener("click", closeModal);
     document.getElementById("modal").addEventListener("click", (e) => {
       if (e.target.id === "modal") closeModal();
     });
   }
 
-  // ---------- Modal & Toast ----------
   function openModal(title, bodyHtml, opts = {}) {
     const m = document.getElementById("modal");
     document.getElementById("modalTitle").textContent = title || "Demo notice";
@@ -164,7 +168,9 @@
     clearTimeout(t._h);
     t._h = setTimeout(() => t.classList.remove("show"), 1800);
   }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme || "dark");
+  }
 
-  // Expose helpers
-  window.UI = { renderShell, openModal, closeModal, toast };
+  window.UI = { renderShell, openModal, closeModal, toast, applyTheme };
 })();
