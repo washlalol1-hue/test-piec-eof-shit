@@ -6,7 +6,8 @@
 
 const SESSION_COOKIE = "vidlog_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days
-const PBKDF2_ITERATIONS = 200_000;
+// Cloudflare Workers' Web Crypto caps PBKDF2 iterations at 100k. Don't raise.
+const PBKDF2_ITERATIONS = 100_000;
 
 // ---------- small helpers ----------
 const json = (data, status = 200, extraHeaders = {}) =>
@@ -244,7 +245,7 @@ async function handleLogin(req, env) {
 
   const user = await getUserByEmail(env, email);
   // Always verify against something to keep timing similar.
-  const dummy = "pbkdf2-sha256$200000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  const dummy = "pbkdf2-sha256$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
   const match = await verifyPassword(password, user ? user.password_hash : dummy);
   if (!user || !match) return err("Invalid email or password.", 401);
 
