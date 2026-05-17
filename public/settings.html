@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Settings</h1>
+
+    <div class="grid grid-2 mb-16">
+      <div class="card">
+        <h3 class="mt-0">Profile</h3>
+        <form id="profileForm" autocomplete="off" novalidate>
+          <div class="field">
+            <label>Display name</label>
+            <input class="input" id="s_name" maxlength="40" required />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input class="input" id="s_email" type="email" required />
+          </div>
+          <button type="submit" class="btn btn-primary" id="profBtn">Save</button>
+          <span class="muted" id="profStatus" style="margin-left:8px;font-size:13px;"></span>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="mt-0">Security</h3>
+        <form id="pwForm" autocomplete="off" novalidate>
+          <div class="field">
+            <label>Current password</label>
+            <input class="input" id="pw_current" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="field">
+            <label>New password</label>
+            <input class="input" id="pw_new" type="password" autocomplete="new-password" minlength="8" required />
+            <small class="muted">At least 8 characters.</small>
+          </div>
+          <div class="field">
+            <label>Confirm new password</label>
+            <input class="input" id="pw_new2" type="password" autocomplete="new-password" minlength="8" required />
+          </div>
+          <button type="submit" class="btn btn-primary" id="pwBtn">Update password</button>
+          <span class="muted" id="pwStatus" style="margin-left:8px;font-size:13px;"></span>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <h3 class="mt-0">Preferences</h3>
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Theme</label>
+          <select id="s_theme">
+            <option value="dark">Dark (default)</option>
+            <option value="darker">Deep dark</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Autoplay next video</label>
+          <select id="s_autoplay">
+            <option value="off">Off</option>
+            <option value="on">On</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="prefBtn">Save preferences</button>
+      <span class="muted" id="prefStatus" style="margin-left:8px;font-size:13px;"></span>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0" style="color:var(--danger);">Danger zone</h3>
+      <p class="muted" style="font-size:14px;">
+        Deleting your account permanently removes your user record, watch
+        history, and notes. This action cannot be undone.
+      </p>
+      <div class="row-flex">
+        <button class="btn btn-danger" id="deleteBtn">Delete account</button>
+        <button class="btn" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+      UI.renderShell("Settings");
+
+      document.getElementById("s_name").value = me.name || "";
+      document.getElementById("s_email").value = me.email || "";
+
+      const prefs = JSON.parse(localStorage.getItem("vidlog_prefs") || "{}");
+      document.getElementById("s_theme").value = prefs.theme || "dark";
+      document.getElementById("s_autoplay").value = prefs.autoplay || "off";
+
+      document.getElementById("profileForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const stat = document.getElementById("profStatus");
+        stat.textContent = "Saving...";
+        const r = await VidLog.api("/api/profile", {
+          method: "PUT",
+          body: {
+            name:  document.getElementById("s_name").value.trim(),
+            email: document.getElementById("s_email").value.trim().toLowerCase(),
+          },
+        });
+        stat.textContent = r.ok ? "Saved." : (r.error || "Could not save.");
+      });
+
+      document.getElementById("pwForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const stat = document.getElementById("pwStatus");
+        const a = document.getElementById("pw_current").value;
+        const b = document.getElementById("pw_new").value;
+        const c = document.getElementById("pw_new2").value;
+        if (b.length < 8) { stat.textContent = "New password must be at least 8 characters."; return; }
+        if (b !== c)      { stat.textContent = "New passwords do not match."; return; }
+        stat.textContent = "Updating...";
+        const r = await VidLog.api("/api/profile/password", {
+          method: "POST",
+          body: { current_password: a, new_password: b },
+        });
+        if (r.ok) {
+          stat.textContent = "Password updated.";
+          e.target.reset();
+        } else {
+          stat.textContent = r.error || "Could not update.";
+        }
+      });
+
+      document.getElementById("prefBtn").addEventListener("click", () => {
+        const next = {
+          theme:    document.getElementById("s_theme").value,
+          autoplay: document.getElementById("s_autoplay").value,
+        };
+        localStorage.setItem("vidlog_prefs", JSON.stringify(next));
+        document.getElementById("prefStatus").textContent = "Saved (this device).";
+      });
+
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+        await VidLog.logout();
+        location.href = "/";
+      });
+
+      document.getElementById("deleteBtn").addEventListener("click", () => {
+        UI.openModal(
+          "Delete your account?",
+          `<p>This permanently removes your account, watch history, and
+           notes. This cannot be undone.</p>
+           <div class="field" style="margin-top:8px;">
+             <label for="delPw">Confirm with your password</label>
+             <input class="input" id="delPw" type="password" />
+           </div>`,
+          { confirmText: "Delete forever",
+            onConfirm: async () => {
+              const password = document.getElementById("delPw")?.value || "";
+              const r = await VidLog.api("/api/profile", { method: "DELETE", body: { password } });
+              if (r.ok) {
+                location.href = "/";
+              } else {
+                UI.toast(r.error || "Could not delete account.");
+              }
+            } }
+        );
+      });
+    })();
+  </script>
+</body>
+</html>

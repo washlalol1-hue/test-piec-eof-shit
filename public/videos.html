@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <style>
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filters input { flex: 1; min-width: 200px; }
+    .player video { width: 100%; max-height: 60vh; background: #000; border-radius: 10px; display: block; }
+    .player .info { margin-top: 12px; }
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+      background: rgba(0,224,255,.1); color: var(--primary);
+      border: 1px solid rgba(0,224,255,.25); margin-right: 4px;
+    }
+    .note-box { display: flex; gap: 8px; margin-top: 12px; }
+    .note-box textarea { flex: 1; min-height: 70px; }
+  </style>
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Your library</h1>
+
+    <div class="filters">
+      <input class="input" id="searchInput" placeholder="Search by title or tag..." />
+      <select id="sortSelect">
+        <option value="recent">Sort: recently added</option>
+        <option value="title">Sort: title (A-Z)</option>
+        <option value="duration">Sort: duration</option>
+      </select>
+    </div>
+
+    <div id="playerCard" class="card mb-16 hidden player">
+      <div class="row-flex space-between">
+        <h3 class="mt-0 mb-0" id="pTitle">-</h3>
+        <button class="btn btn-sm" id="closePlayer">Close</button>
+      </div>
+      <video id="pVideo" controls playsinline preload="metadata"></video>
+      <div class="info">
+        <div class="muted" id="pMeta" style="font-size:13px;"></div>
+        <div id="pTags" class="mt-8"></div>
+        <div class="note-box">
+          <textarea class="input" id="pNote" placeholder="Add a note for yourself..."></textarea>
+          <button class="btn btn-primary" id="saveNoteBtn">Save note</button>
+        </div>
+        <div class="muted mt-8" id="pStatus" style="font-size:12px;"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-3" id="grid"><div class="muted">Loading...</div></div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+      UI.renderShell("Library");
+
+      const grid     = document.getElementById("grid");
+      const search   = document.getElementById("searchInput");
+      const sortSel  = document.getElementById("sortSelect");
+      const player   = document.getElementById("playerCard");
+      const pVideo   = document.getElementById("pVideo");
+      const pTitle   = document.getElementById("pTitle");
+      const pMeta    = document.getElementById("pMeta");
+      const pTags    = document.getElementById("pTags");
+      const pNote    = document.getElementById("pNote");
+      const pStatus  = document.getElementById("pStatus");
+
+      let videos = [];
+      let current = null;
+      let progressTimer = null;
+
+      function fmtMinutes(seconds) {
+        if (!seconds) return "-";
+        const m = Math.round(seconds / 60);
+        if (m < 60) return m + " min";
+        const h = Math.floor(m / 60);
+        return h + "h " + (m % 60) + "m";
+      }
+
+      function render() {
+        const q = search.value.trim().toLowerCase();
+        const sort = sortSel.value;
+
+        let list = videos.slice();
+        if (q) {
+          list = list.filter(v =>
+            v.title.toLowerCase().includes(q) ||
+            (v.tags || []).some(t => t.toLowerCase().includes(q))
+          );
+        }
+        if (sort === "title")    list.sort((a, b) => a.title.localeCompare(b.title));
+        if (sort === "duration") list.sort((a, b) => (b.duration_seconds || 0) - (a.duration_seconds || 0));
+        if (sort === "recent")   list.sort((a, b) => (b.added_at || "").localeCompare(a.added_at || ""));
+
+        if (!list.length) {
+          grid.innerHTML = `<div class="muted">No videos match.</div>`;
+          return;
+        }
+
+        grid.innerHTML = list.map(v => {
+          const pct = v.duration_seconds
+            ? Math.min(100, Math.round((v.progress_seconds || 0) / v.duration_seconds * 100))
+            : 0;
+          const watched = v.watched ? '<span class="badge badge-success">Watched</span>' : '';
+          return `
+            <div class="card video-card" data-id="${v.id}" style="cursor:pointer;">
+              <div class="video-thumb">&#9654;</div>
+              <div class="video-meta">
+                <div class="row-flex space-between">
+                  <h4 style="margin:0;">${VidLog.escape(v.title)}</h4>
+                  ${watched}
+                </div>
+                <div class="muted" style="font-size:12px;">${fmtMinutes(v.duration_seconds)}</div>
+                <div class="progress mt-8"><span style="width:${pct}%;"></span></div>
+                <div class="muted mt-8" style="font-size:12px;">${(v.tags || []).map(t => '#' + t).join(' ')}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        grid.querySelectorAll(".video-card").forEach(el => {
+          el.addEventListener("click", () => openVideo(el.dataset.id));
+        });
+      }
+
+      async function openVideo(id) {
+        const v = videos.find(x => x.id === id);
+        if (!v) return;
+        current = v;
+
+        pTitle.textContent = v.title;
+        pMeta.textContent = fmtMinutes(v.duration_seconds) +
+          (v.description ? " - " + v.description : "");
+        pTags.innerHTML = (v.tags || []).map(t =>
+          `<span class="tag">#${VidLog.escape(t)}</span>`).join("");
+        pNote.value = v.note || "";
+        pStatus.textContent = v.watched ? "Marked watched." : "";
+
+        pVideo.src = v.url;
+        pVideo.currentTime = Math.min(v.progress_seconds || 0, (v.duration_seconds || 0) - 1);
+
+        player.classList.remove("hidden");
+        history.replaceState(null, "", "/videos.html?id=" + encodeURIComponent(id));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        // Periodically save progress
+        clearInterval(progressTimer);
+        progressTimer = setInterval(saveProgress, 8000);
+      }
+
+      async function saveProgress(extra = {}) {
+        if (!current || !pVideo.duration) return;
+        const body = {
+          progress_seconds: Math.floor(pVideo.currentTime),
+          duration_seconds: Math.floor(pVideo.duration),
+          ...extra,
+        };
+        try {
+          const r = await VidLog.api("/api/videos/" + encodeURIComponent(current.id) + "/watch", {
+            method: "POST", body,
+          });
+          if (r.ok) {
+            current.progress_seconds = body.progress_seconds;
+            current.duration_seconds = body.duration_seconds;
+            if (extra.watched) current.watched = 1;
+            pStatus.textContent = "Saved at " + new Date().toLocaleTimeString();
+            render();
+          }
+        } catch {}
+      }
+
+      pVideo.addEventListener("ended", () => saveProgress({ watched: true }));
+
+      document.getElementById("closePlayer").addEventListener("click", () => {
+        clearInterval(progressTimer);
+        saveProgress();
+        pVideo.pause();
+        pVideo.removeAttribute("src");
+        pVideo.load();
+        player.classList.add("hidden");
+        current = null;
+        history.replaceState(null, "", "/videos.html");
+      });
+
+      document.getElementById("saveNoteBtn").addEventListener("click", async () => {
+        if (!current) return;
+        const note = pNote.value.trim();
+        const r = await VidLog.api("/api/videos/" + encodeURIComponent(current.id) + "/note", {
+          method: "POST", body: { note },
+        });
+        if (r.ok) {
+          current.note = note;
+          UI.toast("Note saved");
+        } else {
+          UI.toast(r.error || "Could not save note");
+        }
+      });
+
+      search.addEventListener("input", render);
+      sortSel.addEventListener("change", render);
+
+      try {
+        const r = await VidLog.api("/api/videos");
+        if (!r.ok) throw new Error(r.error || "Failed to load videos");
+        videos = r.data;
+        render();
+
+        const params = new URLSearchParams(location.search);
+        const id = params.get("id");
+        if (id) openVideo(id);
+      } catch (e) {
+        grid.innerHTML = `<div class="muted">Could not load library: ${VidLog.escape(e.message)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

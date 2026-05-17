@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Messages - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Announcements</h1>
+    <p class="muted">Release notes and tips from the VidLog team.</p>
+    <div id="msgList" class="grid"><div class="muted">Loading...</div></div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+      UI.renderShell("Messages");
+
+      const list = document.getElementById("msgList");
+      const tagCls = {
+        Release: "badge-success",
+        Tip:     "badge",
+        Notice:  "badge-warning",
+      };
+
+      try {
+        const r = await VidLog.api("/api/announcements");
+        if (!r.ok) throw new Error(r.error || "Failed");
+        if (!r.data.length) {
+          list.innerHTML = `<div class="muted">No announcements yet.</div>`;
+          return;
+        }
+        list.innerHTML = r.data.map(m => `
+          <div class="card">
+            <div class="row-flex space-between">
+              <div class="row-flex">
+                <span class="badge ${tagCls[m.tag] || ""}">${VidLog.escape(m.tag)}</span>
+                <strong>${VidLog.escape(m.title)}</strong>
+              </div>
+              <span class="muted" style="font-size:12px;">${m.published_at.slice(0, 10)}</span>
+            </div>
+            <div class="muted mt-8" style="font-size:14px;">${VidLog.escape(m.body)}</div>
+          </div>
+        `).join("");
+      } catch (e) {
+        list.innerHTML = `<div class="muted">Could not load announcements: ${VidLog.escape(e.message)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Admin</h1>
+
+    <div id="adminGate" class="hidden">
+      <div class="notice danger">
+        You must be an administrator to view this page.
+      </div>
+    </div>
+
+    <div id="adminBody" class="hidden">
+      <div class="grid grid-4 mb-16">
+        <div class="stat"><div class="label">Users</div><div class="value" id="aUsers">-</div></div>
+        <div class="stat"><div class="label">Videos</div><div class="value" id="aVideos">-</div></div>
+        <div class="stat"><div class="label">Watches (7d)</div><div class="value" id="aWatches">-</div></div>
+        <div class="stat"><div class="label">Announcements</div><div class="value" id="aAnnounce">-</div></div>
+      </div>
+
+      <div class="card mb-16">
+        <div class="row-flex space-between mb-8">
+          <h3 class="mt-0 mb-0">Add a video</h3>
+          <span class="muted" style="font-size:12px;">Anyone signed in can watch added videos.</span>
+        </div>
+        <form id="videoForm" autocomplete="off">
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Title</label>
+              <input class="input" id="v_title" maxlength="120" required />
+            </div>
+            <div class="field">
+              <label>URL (mp4 / webm)</label>
+              <input class="input" id="v_url" type="url" required />
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Duration (seconds)</label>
+              <input class="input" id="v_duration" type="number" min="0" />
+            </div>
+            <div class="field">
+              <label>Tags (comma separated)</label>
+              <input class="input" id="v_tags" placeholder="tutorial, web, fun" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea id="v_desc" rows="2" maxlength="500"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="vBtn">Add video</button>
+          <span class="muted" id="vStatus" style="margin-left:8px;font-size:13px;"></span>
+        </form>
+      </div>
+
+      <div class="card mb-16">
+        <h3 class="mt-0">Videos</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Duration</th><th>Tags</th><th></th></tr></thead>
+            <tbody id="videosTbl"><tr><td colspan="4" class="muted center">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mb-16">
+        <h3 class="mt-0">Post an announcement</h3>
+        <form id="annForm" autocomplete="off">
+          <div class="grid grid-2">
+            <div class="field">
+              <label>Tag</label>
+              <select id="a_tag">
+                <option>Release</option>
+                <option>Tip</option>
+                <option>Notice</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Title</label>
+              <input class="input" id="a_title" maxlength="120" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>Body</label>
+            <textarea id="a_body" rows="3" maxlength="2000" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="aBtn">Publish</button>
+          <span class="muted" id="aStatus" style="margin-left:8px;font-size:13px;"></span>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="mt-0">Users</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Joined</th></tr></thead>
+            <tbody id="usersTbl"><tr><td colspan="4" class="muted center">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+      UI.renderShell("Admin");
+
+      if (me.role !== "admin") {
+        document.getElementById("adminGate").classList.remove("hidden");
+        return;
+      }
+      document.getElementById("adminBody").classList.remove("hidden");
+
+      function fmtDuration(s) {
+        if (!s) return "-";
+        const m = Math.round(s / 60);
+        return m < 60 ? m + "m" : Math.floor(m / 60) + "h " + (m % 60) + "m";
+      }
+
+      async function loadStats() {
+        const r = await VidLog.api("/api/admin/stats");
+        if (!r.ok) return;
+        const s = r.data;
+        document.getElementById("aUsers").textContent    = s.users;
+        document.getElementById("aVideos").textContent   = s.videos;
+        document.getElementById("aWatches").textContent  = s.watches_7d;
+        document.getElementById("aAnnounce").textContent = s.announcements;
+      }
+
+      async function loadVideos() {
+        const tbody = document.getElementById("videosTbl");
+        const r = await VidLog.api("/api/videos");
+        if (!r.ok) { tbody.innerHTML = `<tr><td colspan="4" class="muted center">Could not load.</td></tr>`; return; }
+        if (!r.data.length) { tbody.innerHTML = `<tr><td colspan="4" class="muted center">No videos yet.</td></tr>`; return; }
+        tbody.innerHTML = r.data.map(v => `
+          <tr>
+            <td>${VidLog.escape(v.title)}</td>
+            <td>${fmtDuration(v.duration_seconds)}</td>
+            <td>${(v.tags || []).map(t => '#' + VidLog.escape(t)).join(' ')}</td>
+            <td><button class="btn btn-sm btn-danger" data-del="${v.id}">Delete</button></td>
+          </tr>`).join("");
+        tbody.querySelectorAll("button[data-del]").forEach(b => {
+          b.addEventListener("click", async () => {
+            if (!confirm("Delete this video and all related watch history?")) return;
+            const rr = await VidLog.api("/api/admin/videos/" + encodeURIComponent(b.dataset.del), { method: "DELETE" });
+            if (rr.ok) { loadVideos(); loadStats(); UI.toast("Deleted"); }
+            else UI.toast(rr.error || "Could not delete");
+          });
+        });
+      }
+
+      async function loadUsers() {
+        const tbody = document.getElementById("usersTbl");
+        const r = await VidLog.api("/api/admin/users");
+        if (!r.ok) { tbody.innerHTML = `<tr><td colspan="4" class="muted center">Could not load.</td></tr>`; return; }
+        tbody.innerHTML = r.data.map(u => `
+          <tr>
+            <td>${VidLog.escape(u.email)}</td>
+            <td>${VidLog.escape(u.name || "")}</td>
+            <td>${u.role}</td>
+            <td>${(u.created_at || "").slice(0, 10)}</td>
+          </tr>`).join("");
+      }
+
+      document.getElementById("videoForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const stat = document.getElementById("vStatus");
+        stat.textContent = "Saving...";
+        const tags = document.getElementById("v_tags").value
+          .split(",").map(s => s.trim()).filter(Boolean);
+        const body = {
+          title: document.getElementById("v_title").value.trim(),
+          url:   document.getElementById("v_url").value.trim(),
+          duration_seconds: parseInt(document.getElementById("v_duration").value, 10) || null,
+          tags,
+          description: document.getElementById("v_desc").value.trim(),
+        };
+        const r = await VidLog.api("/api/admin/videos", { method: "POST", body });
+        if (r.ok) {
+          e.target.reset();
+          stat.textContent = "Added.";
+          loadVideos(); loadStats();
+        } else {
+          stat.textContent = r.error || "Could not add.";
+        }
+      });
+
+      document.getElementById("annForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const stat = document.getElementById("aStatus");
+        stat.textContent = "Publishing...";
+        const body = {
+          tag:   document.getElementById("a_tag").value,
+          title: document.getElementById("a_title").value.trim(),
+          body:  document.getElementById("a_body").value.trim(),
+        };
+        const r = await VidLog.api("/api/admin/announcements", { method: "POST", body });
+        if (r.ok) {
+          e.target.reset();
+          stat.textContent = "Published.";
+          loadStats();
+        } else {
+          stat.textContent = r.error || "Could not publish.";
+        }
+      });
+
+      loadStats();
+      loadVideos();
+      loadUsers();
+    })();
+  </script>
+</body>
+</html>

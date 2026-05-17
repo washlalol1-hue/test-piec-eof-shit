@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VidLog - Your personal video library</title>
+  <meta name="description" content="VidLog is a personal video library and watchlist. Upload, organise, and track what you have watched." />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <header class="public-nav">
+    <div class="public-nav-inner">
+      <a href="/" class="brand">
+        <span class="brand-mark">V</span>
+        <span>VidLog</span>
+      </a>
+      <nav class="links">
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="/login.html" class="btn btn-ghost" data-auth-hide>Log in</a>
+        <a href="/register.html" class="btn btn-primary" data-auth-hide>Sign up</a>
+        <a href="/dashboard.html" class="btn btn-primary hidden" data-auth-show>Open dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <span class="eyebrow">Your videos, your library</span>
+      <h1>A clean, private video library for the things you actually watch.</h1>
+      <p>
+        VidLog is a small personal-media app: log the videos you watch,
+        track your progress, take notes, and pick what to watch next.
+        No ads, no tiers, no money - just your library on your account.
+      </p>
+      <div class="hero-actions">
+        <a href="/register.html" class="btn btn-primary" data-auth-hide>Create a free account</a>
+        <a href="/login.html" class="btn" data-auth-hide>I already have one</a>
+        <a href="/dashboard.html" class="btn btn-primary hidden" data-auth-show>Open my dashboard</a>
+      </div>
+    </section>
+
+    <section class="section container" id="features">
+      <h2>What VidLog does</h2>
+      <p class="lead">A small set of features that all work together.</p>
+      <div class="grid grid-3">
+        <div class="feature">
+          <div class="icon">&#127916;</div>
+          <h3>Library</h3>
+          <p>Browse the videos in your library, with thumbnails, duration and tags.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">&#9654;</div>
+          <h3>Watch tracking</h3>
+          <p>Mark videos as watched, see progress, and resume where you left off.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">&#128221;</div>
+          <h3>Notes</h3>
+          <p>Add a short note per video so you remember why you saved it.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">&#128276;</div>
+          <h3>Announcements</h3>
+          <p>Lightweight messages from the admin (release notes, tips).</p>
+        </div>
+        <div class="feature">
+          <div class="icon">&#9881;&#65039;</div>
+          <h3>Account settings</h3>
+          <p>Update your display name, change your password, or delete your account.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">&#128274;</div>
+          <h3>Real authentication</h3>
+          <p>PBKDF2-hashed passwords, signed session cookies, Cloudflare Workers + D1.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container" id="about">
+      <div class="card">
+        <h2 class="mt-0">About this project</h2>
+        <p class="muted">
+          VidLog is a small full-stack project: a static frontend served
+          from Cloudflare Pages assets, a Workers API for auth and data,
+          and a D1 database for persistence. The frontend talks to the
+          API at <code>/api/*</code>, with session cookies set by the
+          worker. Source is available in the repository README.
+        </p>
+        <div class="row-flex">
+          <a class="btn btn-primary" href="/register.html" data-auth-hide>Create an account</a>
+          <a class="btn" href="/login.html" data-auth-hide>Log in</a>
+          <a class="btn btn-primary hidden" href="/dashboard.html" data-auth-show>Open dashboard</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div>(c) 2026 VidLog - personal video library.</div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/auth.js"></script>
+  <script>VidLog.applyAuthVisibility();</script>
+</body>
+</html>

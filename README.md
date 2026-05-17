@@ -1,156 +1,122 @@
-# T-Video Media Demo
+# VidLog
 
-A complete educational replica of a "video reward" platform, built as a
-school project about online scam awareness.
+A small personal video library: log the videos you watch, track progress,
+take notes, and pick what to watch next. No ads, no tiers, no money - just
+your library on your account.
 
-> **Educational demo for scam-awareness research. No real money, no real
-> accounts, no real rewards.**
->
-> This site is **not** affiliated with any real company or brand. The name
-> "T-Video Media Demo" is fictional and is used purely to study the design
-> patterns commonly seen on fake reward / task platforms. There is no real
-> backend, no real authentication, no real payment processing, and no real
-> wallet addresses.
-
-## What is included
-
-A 16-page responsive UI that mirrors the typical structure of a
-reward-task scam platform, plus a dedicated **Scam Analysis** page that
-explains every pattern the demo intentionally reproduces.
-
-| Page | File | Purpose |
-|---|---|---|
-| Landing | `index.html` | Marketing-style intro, feature cards, red-flag list |
-| Login | `login.html` | Fake login (any input redirects to dashboard) |
-| Register | `register.html` | Fake registration with invitation-code warning |
-| Dashboard | `dashboard.html` | Profile, fake balance, stats, quick actions |
-| Video Tasks | `tasks.html` | Fake "watch to earn" cards with countdown modal |
-| VIP Levels | `vip.html` | 6 fake VIP tiers with upgrade warning modal |
-| Recharge | `recharge.html` | Fake deposit form (no real payment processing) |
-| Withdraw | `withdraw.html` | Fake withdrawal form, history with all status types |
-| Invite | `invite.html` | Fake invite code/link, L1/L2/L3 commission cards |
-| Team | `team.html` | Fake downline statistics and table |
-| Transactions | `transactions.html` | Tabbed history of fake records |
-| Messages | `messages.html` | Fake announcements illustrating urgency tactics |
-| Support | `support.html` | Auto-reply demo chat, FAQ, demo ticket form |
-| Scam Analysis | `scam-analysis.html` | Educational walkthrough of every red flag |
-| Settings | `settings.html` | Local-only preferences and reset |
-| Admin Demo | `admin.html` | Fake operator dashboard for educational analysis |
-
-## File structure
+The frontend is a static site (HTML/CSS/vanilla JS). The backend is a single
+[Cloudflare Worker](https://developers.cloudflare.com/workers/) backed by a
+[D1](https://developers.cloudflare.com/d1/) database.
 
 ```
 .
-├── index.html
-├── login.html
-├── register.html
-├── dashboard.html
-├── tasks.html
-├── vip.html
-├── recharge.html
-├── withdraw.html
-├── invite.html
-├── team.html
-├── transactions.html
-├── messages.html
-├── support.html
-├── scam-analysis.html
-├── settings.html
-├── admin.html
-└── assets/
-    ├── css/
-    │   └── styles.css      # full dark theme, components
-    └── js/
-        ├── data.js         # all FAKE demo data (user, tasks, VIP, ...)
-        └── app.js          # sidebar/topbar shell, modal, toast helpers
+|-- public/                # static frontend (served by env.ASSETS)
+|   |-- index.html
+|   |-- login.html
+|   |-- register.html
+|   |-- dashboard.html
+|   |-- videos.html
+|   |-- messages.html
+|   |-- support.html
+|   |-- settings.html
+|   |-- admin.html
+|   `-- assets/{css,js}/   # styles.css, auth.js, app.js
+|-- worker/
+|   `-- index.js           # Cloudflare Worker (auth + API)
+|-- migrations/
+|   `-- 0001_init.sql      # D1 schema + seed data
+`-- wrangler.jsonc
 ```
 
-## Running locally
+## Features
 
-This is plain HTML / CSS / JavaScript. There is **no build step** and **no
-backend**.
+- Real authentication (PBKDF2-SHA256 password hashing, signed HttpOnly
+  session cookies, 14-day TTL).
+- Personal video library with search, sort, tags, and per-user notes.
+- Server-side watch tracking - resume any video where you left off,
+  on any device.
+- Announcements page populated from D1.
+- Settings page: edit profile, change password, delete account.
+- Admin page: add/delete videos, post announcements, see basic stats.
+  The first user to register automatically becomes the admin.
 
-Just open `index.html` in any modern browser, or serve the folder
-statically:
+## API
+
+All endpoints are JSON. Authenticated endpoints require the
+`vidlog_session` cookie set by the login/register response.
+
+| Method | Path                                  | Auth   | Description                                |
+| ------ | ------------------------------------- | ------ | ------------------------------------------ |
+| POST   | `/api/auth/register`                  | -      | Create an account, sets session cookie     |
+| POST   | `/api/auth/login`                     | -      | Verify password, sets session cookie       |
+| POST   | `/api/auth/logout`                    | -      | Clears the session cookie                  |
+| GET    | `/api/auth/me`                        | user   | Returns the current user                   |
+| GET    | `/api/dashboard`                      | user   | Stats + continue-watching + recent + news  |
+| GET    | `/api/videos`                         | user   | Library plus the user's progress per video |
+| POST   | `/api/videos/:id/watch`               | user   | Save progress (and optionally `watched`)   |
+| POST   | `/api/videos/:id/note`                | user   | Save a per-user note for a video           |
+| GET    | `/api/announcements`                  | user   | Recent announcements                       |
+| POST   | `/api/feedback`                       | user   | Submit subject + message                   |
+| PUT    | `/api/profile`                        | user   | Update display name and email              |
+| POST   | `/api/profile/password`               | user   | Change password (current + new)            |
+| DELETE | `/api/profile`                        | user   | Delete the account (requires password)     |
+| GET    | `/api/admin/stats`                    | admin  | Counts: users, videos, watches, news       |
+| GET    | `/api/admin/users`                    | admin  | Latest 200 users                           |
+| POST   | `/api/admin/videos`                   | admin  | Add a video to the library                 |
+| DELETE | `/api/admin/videos/:id`               | admin  | Remove a video                             |
+| POST   | `/api/admin/announcements`            | admin  | Publish an announcement                    |
+
+## Local development
+
+You need Node 18+ and the Wrangler CLI.
 
 ```bash
-# Python 3
-python3 -m http.server 8080
-# then visit http://localhost:8080
+npm install -g wrangler   # or use `npx wrangler ...` for every command
+
+# 1. Create the D1 database (first time only)
+wrangler d1 create vidlog
+# Wrangler prints something like:
+#   database_name = "vidlog"
+#   database_id   = "..."
+# Copy the database_id into wrangler.jsonc -> d1_databases[0].database_id
+
+# 2. Apply migrations (creates tables and inserts seed data)
+wrangler d1 migrations apply vidlog --local       # local dev
+# wrangler d1 migrations apply vidlog              # production
+
+# 3. Run locally
+wrangler dev
+# Open http://localhost:8787 - register a user (the first user becomes admin).
 ```
 
-## Live demo logic
+## Deploying
 
-Earnings, packages, and tasks are now fully reactive instead of being
-hard-coded. The site keeps its state in `localStorage` under the key
-`tvmd_state` and exposes a tiny "domain" API on `window.DEMO.api`.
+```bash
+# Set a real production JWT secret (do not rely on the default in vars)
+wrangler secret put JWT_SECRET
 
-### Buying a package (VIP page)
+# Apply migrations to the production D1 database
+wrangler d1 migrations apply vidlog
 
-1. Go to **VIP Levels**.
-2. Pick any tier (VIP 0 - VIP 5) and click **Buy package (Demo)**.
-3. The educational warning still fires; clicking **Activate package**
-   sets `state.packageLevel` and writes a `VIP Upgrade` transaction.
-4. The dashboard, tasks page, and VIP page all live-update.
+# Deploy the Worker + assets
+wrangler deploy
+```
 
-If you have **no** package selected, the dashboard shows a red CTA
-("You have no package selected. Buy a package to start unlocking daily
-video tasks.") and the Video Tasks page shows a locked card with a
-**Buy a package** button.
+After the first deploy:
 
-### Daily video tasks
+1. Visit your worker URL (`https://vidlog.<account>.workers.dev` by default).
+2. Click "Sign up" and register the first account - it is automatically
+   given the `admin` role.
+3. Open the Admin page in the sidebar to add videos and post announcements.
 
-The Video Tasks page generates exactly `vip.daily` task slots based on
-your active package, and each task pays
-`vip.dailyIncome / vip.daily` so completing all of them yields the
-daily-income figure shown on the VIP card. Tasks reset every calendar
-day.
+## Security notes
 
-| Package | Daily tasks | Per-task reward | Daily income |
-|---------|-------------|-----------------|--------------|
-| VIP 0   | 3           | $0.50           | $1.50        |
-| VIP 1   | 6           | $0.67           | $4.00        |
-| VIP 2   | 10          | $1.20           | $12.00       |
-| VIP 3   | 15          | $2.33           | $35.00       |
-| VIP 4   | 25          | $3.80           | $95.00       |
-| VIP 5   | 40          | $7.00           | $280.00      |
-
-### Real video playback
-
-Drop video files into `assets/videos/` named `task-1.mp4`, `task-2.mp4`,
-... up to `task-40.mp4` (the maximum at VIP 5). The player will load
-the matching file for each slot. If a file is missing the player falls
-back to a 5-second countdown so the task can still be completed for
-demo purposes. See `assets/videos/README.md` for details.
-
-### Withdrawing
-
-The Withdraw page reads the real demo balance and refuses requests
-larger than what the user has earned. Submitting deducts the amount and
-inserts a `Pending` row into both the withdrawal history and the
-transaction history. The dashboard's "Withdrawal status" card mirrors
-the latest record.
-
-### Resetting
-
-Settings → **Reset demo data** clears `tvmd_state` and reloads the page.
-
-## Why this exists
-
-Real reward-task scams reuse the same UI building blocks: VIP tiers, fake
-balances, task lists, multi-level referrals, and "pending" withdrawals.
-By recreating the visual language of these platforms - with educational
-notes attached to each section - this project gives readers a guided tour
-of every red flag, so they can recognise the pattern in the wild.
-
-See `scam-analysis.html` for the full educational walkthrough.
-
-## What this project does **not** include
-
-- No real authentication.
-- No real backend, database, or analytics.
-- No real payment processing.
-- No real cryptocurrency wallets, addresses, or QR codes.
-- No real bank or card collection.
-- No real referral tracking.
-- No real branding, logos, or claim of partnership with any company.
+- Passwords are stored as `pbkdf2-sha256$<iterations>$<saltB64u>$<hashB64u>`
+  using 200,000 iterations. Verification uses constant-time comparison.
+- Sessions are JWT-style tokens (`base64url(payload).base64url(HMAC-SHA256
+  signature)`), signed with `JWT_SECRET`. The cookie is `HttpOnly`,
+  `Secure`, `SameSite=Lax`, and lasts 14 days.
+- The default `JWT_SECRET` baked into `wrangler.jsonc` is only meant for
+  local development - override it in production with `wrangler secret put`.
+- Account deletion cascades: the user row, watch history, notes, and
+  feedback are all removed via `ON DELETE CASCADE`.

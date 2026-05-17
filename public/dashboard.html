@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Welcome back, <span id="hello">there</span></h1>
+
+    <div class="grid grid-4 mb-16">
+      <div class="stat">
+        <div class="label">Videos in library</div>
+        <div class="value" id="sLibrary">-</div>
+      </div>
+      <div class="stat">
+        <div class="label">Watched</div>
+        <div class="value" id="sWatched">-</div>
+      </div>
+      <div class="stat">
+        <div class="label">In progress</div>
+        <div class="value" id="sInProgress">-</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total watch time</div>
+        <div class="value" id="sMinutes">-</div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="row-flex space-between mb-8">
+        <h3 class="mt-0 mb-0">Continue watching</h3>
+        <a class="btn btn-sm" href="/videos.html">Open library</a>
+      </div>
+      <div class="grid grid-3" id="continueGrid">
+        <div class="muted">Loading...</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2 mb-16">
+      <div class="card">
+        <h3 class="mt-0">Recently watched</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Video</th><th>When</th><th>Progress</th></tr></thead>
+            <tbody id="recentTbl"><tr><td colspan="3" class="muted center">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="mt-0">Latest announcements</h3>
+        <div id="announceList" class="muted">Loading...</div>
+        <a class="btn btn-sm mt-8" href="/messages.html">All messages</a>
+      </div>
+    </div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+
+      UI.renderShell("Home");
+
+      document.getElementById("hello").textContent = me.name || me.email;
+
+      function fmtMinutes(seconds) {
+        if (!seconds) return "0 min";
+        const m = Math.round(seconds / 60);
+        if (m < 60) return m + " min";
+        const h = Math.floor(m / 60);
+        const rem = m % 60;
+        return h + "h " + rem + "m";
+      }
+
+      function timeAgo(iso) {
+        if (!iso) return "-";
+        const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (diff < 60) return "just now";
+        if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + " h ago";
+        return Math.floor(diff / 86400) + " d ago";
+      }
+
+      function videoCard(v) {
+        const pct = v.duration_seconds
+          ? Math.min(100, Math.round((v.progress_seconds || 0) / v.duration_seconds * 100))
+          : 0;
+        return `
+          <a class="card video-card" href="/videos.html?id=${encodeURIComponent(v.id)}">
+            <div class="video-thumb">&#9654;</div>
+            <div class="video-meta">
+              <h4>${VidLog.escape(v.title)}</h4>
+              <div class="muted" style="font-size:12px;">${fmtMinutes(v.duration_seconds)}</div>
+              <div class="progress mt-8"><span style="width:${pct}%;"></span></div>
+              <div class="muted mt-8" style="font-size:12px;">${pct}% watched</div>
+            </div>
+          </a>`;
+      }
+
+      try {
+        const r = await VidLog.api("/api/dashboard");
+        if (!r.ok) throw new Error(r.error || "Failed");
+        const d = r.data;
+
+        document.getElementById("sLibrary").textContent    = d.stats.library;
+        document.getElementById("sWatched").textContent    = d.stats.watched;
+        document.getElementById("sInProgress").textContent = d.stats.in_progress;
+        document.getElementById("sMinutes").textContent    = fmtMinutes(d.stats.total_seconds_watched);
+
+        const cg = document.getElementById("continueGrid");
+        cg.innerHTML = d.continue_watching.length
+          ? d.continue_watching.map(videoCard).join("")
+          : `<div class="muted">Nothing in progress yet. <a href="/videos.html">Browse the library</a> to start watching.</div>`;
+
+        const tbody = document.getElementById("recentTbl");
+        if (!d.recent.length) {
+          tbody.innerHTML = `<tr><td colspan="3" class="muted center">No watch history yet.</td></tr>`;
+        } else {
+          tbody.innerHTML = d.recent.map(r => {
+            const pct = r.duration_seconds
+              ? Math.min(100, Math.round((r.progress_seconds || 0) / r.duration_seconds * 100))
+              : 0;
+            return `<tr>
+              <td><a href="/videos.html?id=${encodeURIComponent(r.video_id)}">${VidLog.escape(r.title)}</a></td>
+              <td>${timeAgo(r.watched_at)}</td>
+              <td>${pct}%</td>
+            </tr>`;
+          }).join("");
+        }
+
+        const al = document.getElementById("announceList");
+        al.innerHTML = d.announcements.length
+          ? d.announcements.map(m => `
+              <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+                <div class="row-flex space-between">
+                  <strong>${VidLog.escape(m.title)}</strong>
+                  <span class="muted" style="font-size:12px;">${m.published_at.slice(0, 10)}</span>
+                </div>
+                <div class="muted" style="font-size:13px;">${VidLog.escape(m.body)}</div>
+              </div>
+            `).join("")
+          : `<div class="muted">No announcements yet.</div>`;
+      } catch (e) {
+        UI.toast("Could not load dashboard: " + e.message);
+      }
+    })();
+  </script>
+</body>
+</html>

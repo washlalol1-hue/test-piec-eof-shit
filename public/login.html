@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <a href="/" class="brand mb-16">
+        <span class="brand-mark">V</span>
+        <span>VidLog</span>
+      </a>
+      <h1>Log in</h1>
+      <p class="sub">Welcome back. Enter your account details.</p>
+
+      <form id="loginForm" autocomplete="on" novalidate>
+        <div class="field">
+          <label for="login_email">Email</label>
+          <input class="input" id="login_email" name="email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="login_pw">Password</label>
+          <input class="input" id="login_pw" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Log in</button>
+
+        <div class="meta">
+          <span class="muted">No account? <a href="/register.html">Sign up</a></span>
+        </div>
+
+        <div class="notice danger hidden" id="loginErr"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/auth.js"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const err  = document.getElementById("loginErr");
+    const btn  = document.getElementById("loginBtn");
+
+    function showErr(msg) {
+      err.textContent = msg;
+      err.classList.remove("hidden");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.classList.add("hidden");
+      btn.disabled = true; btn.textContent = "Signing in...";
+      try {
+        const email = document.getElementById("login_email").value.trim().toLowerCase();
+        const password = document.getElementById("login_pw").value;
+        if (!email || !password) { showErr("Email and password are required."); return; }
+        const r = await VidLog.api("/api/auth/login", { method: "POST", body: { email, password } });
+        if (!r.ok) { showErr(r.error || "Login failed."); return; }
+        location.href = "/dashboard.html";
+      } catch (e) {
+        showErr("Network error - please try again.");
+      } finally {
+        btn.disabled = false; btn.textContent = "Log in";
+      }
+    });
+
+    // If already signed in, skip the form.
+    VidLog.me().then(u => { if (u) location.replace("/dashboard.html"); });
+  </script>
+</body>
+</html>

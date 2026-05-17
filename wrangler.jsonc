@@ -1,14 +1,36 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "test-piec-eof-shit",
+  "name": "vidlog",
+  "main": "worker/index.js",
   "compatibility_date": "2026-05-17",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
+  // Static assets (/public) are served by env.ASSETS. The worker only
+  // handles /api/*; everything else falls through to the assets binding.
   "assets": {
-    "directory": "."
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
   },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  // D1 database binding. Create the database once with:
+  //   npx wrangler d1 create vidlog
+  // then paste the returned database_id below and run:
+  //   npx wrangler d1 migrations apply vidlog
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vidlog",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Override in production with:
+  //   npx wrangler secret put JWT_SECRET
+  // The value below is only used during `wrangler dev` and is NOT safe
+  // for production.
+  "vars": {
+    "JWT_SECRET": "dev-insecure-secret-please-override-in-production"
+  }
 }

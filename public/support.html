@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help &amp; FAQ - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Help &amp; FAQ</h1>
+
+    <div class="card mb-16">
+      <h3 class="mt-0">Frequently asked questions</h3>
+      <div class="grid grid-2">
+        <div>
+          <strong>How do I add a video to my library?</strong>
+          <p class="muted" style="font-size:14px;">
+            For now, videos are added by an administrator. Open the
+            <a href="/admin.html">admin page</a> if you have admin
+            privileges; otherwise ask the operator.
+          </p>
+        </div>
+        <div>
+          <strong>How is my watch progress tracked?</strong>
+          <p class="muted" style="font-size:14px;">
+            While a video plays, the page sends your current position to the
+            server every few seconds. You can resume from the same spot on
+            any device.
+          </p>
+        </div>
+        <div>
+          <strong>Where are my notes saved?</strong>
+          <p class="muted" style="font-size:14px;">
+            Notes are saved per-video on your account. They are private to
+            you and are returned when you reopen the video.
+          </p>
+        </div>
+        <div>
+          <strong>How do I change my password?</strong>
+          <p class="muted" style="font-size:14px;">
+            Open <a href="/settings.html">Settings</a> and use the security
+            section to set a new password.
+          </p>
+        </div>
+        <div>
+          <strong>How do I delete my account?</strong>
+          <p class="muted" style="font-size:14px;">
+            In <a href="/settings.html">Settings</a>, scroll to the danger
+            zone and use "Delete account". This permanently removes your
+            user, your watch history, and your notes.
+          </p>
+        </div>
+        <div>
+          <strong>Is my data secure?</strong>
+          <p class="muted" style="font-size:14px;">
+            Passwords are hashed with PBKDF2 (SHA-256, 200k iterations) and
+            never stored in plain text. Sessions use signed HttpOnly cookies.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <h3 class="mt-0">Send feedback</h3>
+      <p class="muted">Found a bug or have a feature request? Send a quick note.</p>
+      <form id="feedbackForm" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="fb_subject">Subject</label>
+          <input class="input" id="fb_subject" maxlength="120" required />
+        </div>
+        <div class="field">
+          <label for="fb_msg">Message</label>
+          <textarea id="fb_msg" rows="5" maxlength="2000" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="fbBtn">Send</button>
+        <span class="muted ml-8" id="fbStatus" style="margin-left:8px;font-size:13px;"></span>
+      </form>
+    </div>
+  </template>
+
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    (async () => {
+      const me = await VidLog.requireAuth();
+      if (!me) return;
+      UI.renderShell("Help");
+
+      const form = document.getElementById("feedbackForm");
+      const btn  = document.getElementById("fbBtn");
+      const stat = document.getElementById("fbStatus");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const subject = document.getElementById("fb_subject").value.trim();
+        const message = document.getElementById("fb_msg").value.trim();
+        if (!subject || !message) { stat.textContent = "Both fields are required."; return; }
+        btn.disabled = true; stat.textContent = "Sending...";
+        try {
+          const r = await VidLog.api("/api/feedback", { method: "POST", body: { subject, message } });
+          if (r.ok) {
+            form.reset();
+            stat.textContent = "Thanks - feedback received.";
+          } else {
+            stat.textContent = r.error || "Could not send.";
+          }
+        } catch {
+          stat.textContent = "Network error.";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

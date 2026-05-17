@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign up - VidLog</title>
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <a href="/" class="brand mb-16">
+        <span class="brand-mark">V</span>
+        <span>VidLog</span>
+      </a>
+      <h1>Create your account</h1>
+      <p class="sub">Free, no credit card. Just a place to track what you watch.</p>
+
+      <form id="registerForm" autocomplete="on" novalidate>
+        <div class="field">
+          <label for="reg_name">Display name</label>
+          <input class="input" id="reg_name" name="name" autocomplete="nickname" required minlength="2" maxlength="40" />
+        </div>
+        <div class="field">
+          <label for="reg_email">Email</label>
+          <input class="input" id="reg_email" name="email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="reg_pw">Password</label>
+          <input class="input" id="reg_pw" name="password" type="password" autocomplete="new-password" required minlength="8" />
+          <small class="muted">At least 8 characters.</small>
+        </div>
+        <div class="field">
+          <label for="reg_pw2">Confirm password</label>
+          <input class="input" id="reg_pw2" type="password" autocomplete="new-password" required minlength="8" />
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit" id="regBtn">Create account</button>
+
+        <div class="meta">
+          <span class="muted">Already have one? <a href="/login.html">Log in</a></span>
+        </div>
+
+        <div class="notice danger hidden" id="regErr"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/auth.js"></script>
+  <script>
+    const form = document.getElementById("registerForm");
+    const err  = document.getElementById("regErr");
+    const btn  = document.getElementById("regBtn");
+
+    function showErr(msg) { err.textContent = msg; err.classList.remove("hidden"); }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.classList.add("hidden");
+
+      const name = document.getElementById("reg_name").value.trim();
+      const email = document.getElementById("reg_email").value.trim().toLowerCase();
+      const pw  = document.getElementById("reg_pw").value;
+      const pw2 = document.getElementById("reg_pw2").value;
+
+      if (!name || name.length < 2) return showErr("Display name must be at least 2 characters.");
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr("Enter a valid email address.");
+      if (pw.length < 8) return showErr("Password must be at least 8 characters.");
+      if (pw !== pw2) return showErr("Passwords do not match.");
+
+      btn.disabled = true; btn.textContent = "Creating account...";
+      try {
+        const r = await VidLog.api("/api/auth/register", { method: "POST", body: { name, email, password: pw } });
+        if (!r.ok) return showErr(r.error || "Could not create account.");
+        location.href = "/dashboard.html";
+      } catch {
+        showErr("Network error - please try again.");
+      } finally {
+        btn.disabled = false; btn.textContent = "Create account";
+      }
+    });
+
+    VidLog.me().then(u => { if (u) location.replace("/dashboard.html"); });
+  </script>
+</body>
+</html>
