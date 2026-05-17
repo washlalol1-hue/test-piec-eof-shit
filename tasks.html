@@ -1,0 +1,147 @@
+<!--
+  Video Tasks - T-Video Media Demo
+  Educational only. Tasks are fake; "watching" runs a local countdown
+  and adds fake balance to the local DEMO.user object.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Tasks · T-Video Media Demo</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">Video Tasks</h1>
+
+    <div class="notice">
+      <strong>Educational warning:</strong> Real scam sites may use fake video
+      tasks to make users believe they are earning money. The "rewards" are
+      actually just numbers in a database the operators fully control.
+    </div>
+
+    <div class="row-flex space-between mb-16">
+      <div class="muted" id="summary">Loading tasks…</div>
+      <div class="row-flex">
+        <span class="badge badge-success">Available</span>
+        <span class="badge badge-muted">Completed</span>
+        <span class="badge badge-warning">Locked (VIP)</span>
+      </div>
+    </div>
+
+    <div class="grid grid-3" id="taskGrid"></div>
+
+    <div class="disclaimer mt-16">
+      Educational demo for scam-awareness research. No real money, no real
+      accounts, no real rewards.
+    </div>
+  </template>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    UI.renderShell("Video Tasks");
+
+    const grid = document.getElementById("taskGrid");
+
+    function renderTasks() {
+      grid.innerHTML = "";
+      let avail = 0, done = 0, locked = 0;
+      DEMO.tasks.forEach(t => {
+        if (t.status === "available") avail++;
+        if (t.status === "completed") done++;
+        if (t.status === "locked")    locked++;
+
+        const card = document.createElement("div");
+        card.className = "card video-card";
+        const statusBadge = ({
+          available: '<span class="badge badge-success">Available</span>',
+          completed: '<span class="badge badge-muted">Completed</span>',
+          locked:    '<span class="badge badge-warning">Locked · VIP</span>',
+        })[t.status];
+
+        card.innerHTML = `
+          <div class="video-thumb">▶</div>
+          <div class="video-meta">
+            <h4>${t.title}</h4>
+            <div class="row-flex space-between">
+              <span class="muted" style="font-size:13px;">${t.duration} · Reward $${t.reward.toFixed(2)}</span>
+              ${statusBadge}
+            </div>
+            <div class="row-flex mt-8">
+              <button class="btn btn-primary btn-sm watch-btn" data-id="${t.id}"
+                ${t.status !== "available" ? "disabled style='opacity:.6;cursor:not-allowed;'" : ""}>
+                ${t.status === "completed" ? "Done" : t.status === "locked" ? "Locked" : "Watch Demo"}
+              </button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      document.getElementById("summary").textContent =
+        `${avail} available · ${done} completed · ${locked} locked (demo data)`;
+
+      grid.querySelectorAll(".watch-btn").forEach(btn => {
+        btn.addEventListener("click", () => openWatch(btn.dataset.id));
+      });
+    }
+
+    function openWatch(id) {
+      const t = DEMO.tasks.find(x => x.id === id);
+      if (!t) return;
+
+      let seconds = 5; // sped-up demo countdown
+      const html = `
+        <div class="video-thumb" style="border-radius:10px;overflow:hidden;margin-bottom:12px;">▶</div>
+        <div class="muted" style="font-size:13px;">${t.title} · ${t.duration}</div>
+        <div class="mt-8" style="font-weight:700;">Watching demo video… <span id="cdwn">${seconds}</span>s</div>
+        <div class="progress mt-8"><span id="cdbar" style="width:0%;"></span></div>
+        <div class="notice mt-16" style="margin-bottom:0;">
+          Educational note: a real scam version of this screen would be set up
+          to convince you that you are earning money simply by watching.
+        </div>
+      `;
+      UI.openModal("Watch Demo - " + t.title, html, {
+        confirmText: "Complete Task",
+        onConfirm: () => completeTask(t),
+      });
+
+      // Disable confirm until countdown finishes
+      const confirmBtn = document.getElementById("modalConfirm");
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = .5;
+
+      const interval = setInterval(() => {
+        seconds--;
+        const total = 5;
+        const pct = Math.round(((total - seconds) / total) * 100);
+        const cd = document.getElementById("cdwn");
+        const bar = document.getElementById("cdbar");
+        if (cd)  cd.textContent = Math.max(0, seconds);
+        if (bar) bar.style.width = pct + "%";
+        if (seconds <= 0) {
+          clearInterval(interval);
+          confirmBtn.disabled = false;
+          confirmBtn.style.opacity = 1;
+        }
+      }, 1000);
+    }
+
+    function completeTask(t) {
+      t.status = "completed";
+      DEMO.user.balance += t.reward;
+      DEMO.user.todayEarnings += t.reward;
+      DEMO.user.totalEarnings += t.reward;
+      DEMO.user.completedTasks += 1;
+      DEMO.saveUser(DEMO.user);
+      UI.toast(`Demo reward +$${t.reward.toFixed(2)} added (fake)`);
+      renderTasks();
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>

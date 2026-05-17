@@ -1,0 +1,170 @@
+<!--
+  Dashboard - T-Video Media Demo
+  All numbers are fake/local-only. Educational scam-awareness project.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard · T-Video Media Demo</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <!-- Page content gets injected into the shell by app.js -->
+  <template id="pageContent">
+    <h1 class="page-title">Welcome back <span id="hello"></span></h1>
+
+    <!-- Notification banner -->
+    <div class="notice info">
+      <strong>Notice:</strong> Complete 3 more demo tasks today to "unlock" a
+      bonus reward. (Educational note: this is the kind of nudge real platforms
+      use to keep users engaged.)
+    </div>
+
+    <!-- Profile + balance -->
+    <div class="grid grid-2 mb-16">
+      <div class="profile">
+        <div class="avatar" id="avatar">DU</div>
+        <div>
+          <div class="muted" style="font-size:12px;">Demo user</div>
+          <div style="font-weight:800;font-size:18px;" id="username">demo_user_42</div>
+          <div class="row-flex mt-8">
+            <span class="badge badge-gold">VIP <span id="vipLvl">1</span></span>
+            <span class="badge">ID #DEMO-42</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Fake balance</div>
+        <div style="font-size:32px;font-weight:800;color:var(--primary);" id="balance">$0.00</div>
+        <div class="muted" style="font-size:12px;">Demo points only - not real money.</div>
+        <div class="row-flex mt-16">
+          <a class="btn btn-primary" href="recharge.html">Recharge Demo</a>
+          <a class="btn" href="withdraw.html">Withdraw Demo</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat grid -->
+    <div class="grid grid-4 mb-16">
+      <div class="stat">
+        <div class="label">Today's earnings</div>
+        <div class="value" id="todayEarn">$0.00</div>
+        <div class="delta">+ demo only</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total earnings</div>
+        <div class="value" id="totalEarn">$0.00</div>
+        <div class="delta">since signup (demo)</div>
+      </div>
+      <div class="stat">
+        <div class="label">Completed tasks</div>
+        <div class="value" id="doneTasks">0</div>
+        <div class="delta">this month (demo)</div>
+      </div>
+      <div class="stat">
+        <div class="label">Referrals</div>
+        <div class="value" id="refCount">0</div>
+        <div class="delta">L1 (demo)</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card mb-16">
+      <h3 class="mt-0 mb-8">Quick actions</h3>
+      <div class="grid grid-3">
+        <a class="btn" href="tasks.html">🎬 Watch Tasks</a>
+        <a class="btn" href="recharge.html">💳 Recharge Demo</a>
+        <a class="btn" href="withdraw.html">💸 Withdraw Demo</a>
+        <a class="btn" href="invite.html">🤝 Invite Friends</a>
+        <a class="btn" href="vip.html">👑 Upgrade VIP</a>
+        <a class="btn" href="support.html">💬 Contact Support</a>
+      </div>
+    </div>
+
+    <!-- VIP progress + Withdrawal status -->
+    <div class="grid grid-2 mb-16">
+      <div class="card">
+        <h3 class="mt-0">VIP Progress (Demo)</h3>
+        <div class="muted mb-8">Current level: VIP <span id="vipLvl2">1</span> · Next: VIP <span id="vipNext">2</span></div>
+        <div class="progress"><span style="width:35%;"></span></div>
+        <div class="muted mt-8" style="font-size:12px;">35% to next demo tier · upgrade for higher daily promises (educational example)</div>
+        <a class="btn btn-primary mt-16" href="vip.html">View VIP Levels</a>
+      </div>
+      <div class="card">
+        <h3 class="mt-0">Withdrawal Status</h3>
+        <div class="row-flex">
+          <span class="badge badge-warning">Pending review</span>
+          <span class="muted" style="font-size:13px;">Demo · last request 2026-05-16</span>
+        </div>
+        <p class="muted" style="font-size:13px;">
+          Educational note: real scam sites often keep "pending" status for days
+          to discourage users from cashing out and to encourage further deposits.
+        </p>
+        <a class="btn" href="withdraw.html">Open withdrawal page</a>
+      </div>
+    </div>
+
+    <!-- Recent activity preview -->
+    <div class="card">
+      <div class="row-flex space-between mb-8">
+        <h3 class="mt-0 mb-0">Recent activity (demo)</h3>
+        <a class="btn btn-sm" href="transactions.html">View all</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="recentTx"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="disclaimer mt-16">
+      Educational demo for scam-awareness research. No real money, no real
+      accounts, no real rewards.
+    </div>
+  </template>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    UI.renderShell("Home");
+    const u = DEMO.user;
+
+    document.getElementById("hello").textContent = u.username;
+    document.getElementById("username").textContent = u.username;
+    document.getElementById("avatar").textContent = u.avatar || u.username.slice(0,2).toUpperCase();
+    document.getElementById("vipLvl").textContent = u.vipLevel;
+    document.getElementById("vipLvl2").textContent = u.vipLevel;
+    document.getElementById("vipNext").textContent = u.vipLevel + 1;
+    document.getElementById("balance").textContent = "$" + u.balance.toFixed(2);
+    document.getElementById("todayEarn").textContent = "$" + u.todayEarnings.toFixed(2);
+    document.getElementById("totalEarn").textContent = "$" + u.totalEarnings.toFixed(2);
+    document.getElementById("doneTasks").textContent = u.completedTasks;
+    document.getElementById("refCount").textContent = u.referrals;
+
+    // Render last 5 transactions
+    const tbody = document.getElementById("recentTx");
+    DEMO.transactions.slice(0, 5).forEach(t => {
+      const tr = document.createElement("tr");
+      const sign = t.amount >= 0 ? "+" : "-";
+      const cls = t.amount >= 0 ? "badge-success" : "badge-warning";
+      const statusCls = ({
+        Completed: "badge-success", Pending: "badge-warning",
+        Rejected: "badge-danger", Frozen: "badge-danger",
+      })[t.status] || "badge-muted";
+      tr.innerHTML = `
+        <td>${t.date}</td>
+        <td>${t.type}</td>
+        <td><span class="badge ${cls}">${sign}$${Math.abs(t.amount).toFixed(2)}</span></td>
+        <td><span class="badge ${statusCls}">${t.status}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>

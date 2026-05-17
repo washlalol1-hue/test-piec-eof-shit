@@ -1,0 +1,101 @@
+<!--
+  VIP Levels - T-Video Media Demo
+  Educational only. All upgrade buttons show a warning modal.
+  Highlights typical "deposit-to-earn-more" scam pattern.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VIP Levels · T-Video Media Demo</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div id="appRoot"></div>
+
+  <template id="pageContent">
+    <h1 class="page-title">VIP Levels</h1>
+
+    <div class="notice danger">
+      <strong>Suspicious design pattern:</strong> Real scam reward platforms
+      almost always combine these tactics on their VIP page:
+      <ul style="margin:8px 0 0 20px;">
+        <li>Higher deposit = much higher fake earning promise</li>
+        <li>More tasks locked behind every VIP tier</li>
+        <li>Strong visual pressure to upgrade ("Limited time!")</li>
+        <li>Unrealistic daily returns that no legitimate platform can sustain</li>
+      </ul>
+    </div>
+
+    <div class="grid grid-3" id="vipGrid"></div>
+
+    <div class="disclaimer mt-16">
+      Educational demo for scam-awareness research. No real money, no real
+      accounts, no real rewards.
+    </div>
+  </template>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    UI.renderShell("VIP Levels");
+
+    const grid = document.getElementById("vipGrid");
+    DEMO.vipTiers.forEach(v => {
+      const card = document.createElement("div");
+      card.className = "vip" + (v.featured ? " featured" : "");
+      const lockBadge = v.unlocked
+        ? '<span class="badge badge-success">Unlocked</span>'
+        : '<span class="badge badge-warning">Locked</span>';
+      const featured = v.featured ? '<span class="badge badge-gold">TOP</span>' : "";
+
+      card.innerHTML = `
+        <div class="row-flex space-between">
+          <h3>${v.name}</h3>
+          <div class="row-flex">${featured} ${lockBadge}</div>
+        </div>
+        <div class="muted" style="font-size:13px;">
+          ${v.free ? "Free demo level" : "Demo upgrade price"}
+        </div>
+        <div class="price">$${v.price.toLocaleString()}</div>
+        <ul>
+          <li>📋 ${v.daily} daily tasks</li>
+          <li>💰 Fake daily income: $${v.dailyIncome.toFixed(2)}</li>
+          <li>📈 Fake monthly income: $${v.monthlyIncome.toLocaleString()}</li>
+          <li>${v.unlocked ? "✅ Available now (demo)" : "🔒 Requires fake deposit"}</li>
+        </ul>
+        <button class="btn btn-primary btn-block upgrade-btn" data-name="${v.name}" data-price="${v.price}">
+          ${v.free ? "Current free tier" : "Upgrade (Demo)"}
+        </button>
+      `;
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll(".upgrade-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        const name = b.dataset.name;
+        const price = parseFloat(b.dataset.price);
+        UI.openModal(
+          "Demo VIP upgrade · " + name,
+          `
+            <p>This is a fake VIP upgrade screen for educational purposes.
+            Real scam platforms may pressure users to deposit money to unlock
+            higher earnings.</p>
+            <p class="muted" style="font-size:13px;">
+              You would normally see a payment form here demanding
+              <strong>$${price.toLocaleString()}</strong>. In this demo, no
+              payment is processed and no upgrade is performed.
+            </p>
+            <div class="notice danger" style="margin:8px 0 0;">
+              <strong>Watch out:</strong> if a platform requires deposits to
+              "unlock" earnings, that is a major red flag.
+            </div>
+          `,
+          { confirmText: "Got it" }
+        );
+      });
+    });
+  </script>
+</body>
+</html>
