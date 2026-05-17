@@ -39,6 +39,13 @@
 
   function renderShell(pageTitle) {
     const page = currentPage();
+    // NOTE: the .sidebar-backdrop element MUST live OUTSIDE the .app grid.
+    // If we render it as a sibling of .sidebar inside the grid container,
+    // it occupies column 2 of row 1 on desktop (where the grid only has
+    // 2 columns), pushing .main to a second row that sits below the
+    // sticky 100vh sidebar - so on full-screen the user sees only the
+    // sidebar and the rest of the page appears blank. Keeping the
+    // backdrop outside the grid avoids this entirely.
     const sidebarHtml = `
       <aside class="sidebar" id="sidebar">
         <a href="dashboard.html" class="brand">
@@ -55,7 +62,6 @@
           </a>
         </nav>
       </aside>
-      <div class="sidebar-backdrop" id="sbBackdrop"></div>
     `;
     const topbarHtml = `
       <header class="topbar">
@@ -93,6 +99,7 @@
           </div>
         </div>
       </div>
+      <div class="sidebar-backdrop" id="sbBackdrop"></div>
       ${bottomHtml}
       <div class="modal-backdrop" id="modal">
         <div class="modal" role="dialog" aria-modal="true">

@@ -341,6 +341,11 @@ img { max-width: 100%; display: block; }
 }
 .page-title { margin: 4px 0 16px; font-size: 22px; }
 
+/* Sidebar backdrop is only used on mobile when the menu drawer is open.
+   On desktop we force it hidden so it can never accidentally participate
+   in any layout (e.g. the .app grid). */
+.sidebar-backdrop { display: none; }
+
 /* Mobile bottom nav */
 .bottom-nav {
   display: none;
