@@ -1,6 +1,11 @@
 <!--
   Dashboard - T-Video Media Demo
-  All numbers are fake/local-only. Educational scam-awareness project.
+
+  All numbers reflect live state from data.js (localStorage).
+  - If no package is active, a prominent "Buy a package" CTA replaces
+    the VIP-progress card.
+  - "Recent activity" reads the last 5 transactions actually generated
+    by the user (task rewards, package activation, withdrawals).
 -->
 <!doctype html>
 <html lang="en">
@@ -13,16 +18,11 @@
 <body>
   <div id="appRoot"></div>
 
-  <!-- Page content gets injected into the shell by app.js -->
   <template id="pageContent">
     <h1 class="page-title">Welcome back <span id="hello"></span></h1>
 
-    <!-- Notification banner -->
-    <div class="notice info">
-      <strong>Notice:</strong> Complete 3 more demo tasks today to "unlock" a
-      bonus reward. (Educational note: this is the kind of nudge real platforms
-      use to keep users engaged.)
-    </div>
+    <!-- Notification banner: depends on whether a package is active -->
+    <div id="topBanner"></div>
 
     <!-- Profile + balance -->
     <div class="grid grid-2 mb-16">
@@ -30,20 +30,20 @@
         <div class="avatar" id="avatar">DU</div>
         <div>
           <div class="muted" style="font-size:12px;">Demo user</div>
-          <div style="font-weight:800;font-size:18px;" id="username">demo_user_42</div>
+          <div style="font-weight:800;font-size:18px;" id="username">demo_user</div>
           <div class="row-flex mt-8">
-            <span class="badge badge-gold">VIP <span id="vipLvl">1</span></span>
-            <span class="badge">ID #DEMO-42</span>
+            <span class="badge badge-gold" id="vipBadge">No package</span>
+            <span class="badge">ID #DEMO-<span id="userIdSuffix">42</span></span>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Fake balance</div>
+        <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;">Demo balance</div>
         <div style="font-size:32px;font-weight:800;color:var(--primary);" id="balance">$0.00</div>
-        <div class="muted" style="font-size:12px;">Demo points only - not real money.</div>
+        <div class="muted" style="font-size:12px;">Demo points only — not real money.</div>
         <div class="row-flex mt-16">
-          <a class="btn btn-primary" href="recharge.html">Recharge Demo</a>
+          <a class="btn btn-primary" href="tasks.html">Earn from tasks</a>
           <a class="btn" href="withdraw.html">Withdraw Demo</a>
         </div>
       </div>
@@ -54,22 +54,22 @@
       <div class="stat">
         <div class="label">Today's earnings</div>
         <div class="value" id="todayEarn">$0.00</div>
-        <div class="delta">+ demo only</div>
+        <div class="delta" id="todayDelta">— tasks completed today</div>
       </div>
       <div class="stat">
         <div class="label">Total earnings</div>
         <div class="value" id="totalEarn">$0.00</div>
-        <div class="delta">since signup (demo)</div>
+        <div class="delta">since first task (demo)</div>
       </div>
       <div class="stat">
         <div class="label">Completed tasks</div>
         <div class="value" id="doneTasks">0</div>
-        <div class="delta">this month (demo)</div>
+        <div class="delta">all-time (demo)</div>
       </div>
       <div class="stat">
         <div class="label">Referrals</div>
         <div class="value" id="refCount">0</div>
-        <div class="delta">L1 (demo)</div>
+        <div class="delta">L1 (demo data)</div>
       </div>
     </div>
 
@@ -86,24 +86,18 @@
       </div>
     </div>
 
-    <!-- VIP progress + Withdrawal status -->
+    <!-- VIP progress (or buy CTA) + Withdrawal status -->
     <div class="grid grid-2 mb-16">
+      <div class="card" id="vipCard"></div>
       <div class="card">
-        <h3 class="mt-0">VIP Progress (Demo)</h3>
-        <div class="muted mb-8">Current level: VIP <span id="vipLvl2">1</span> · Next: VIP <span id="vipNext">2</span></div>
-        <div class="progress"><span style="width:35%;"></span></div>
-        <div class="muted mt-8" style="font-size:12px;">35% to next demo tier · upgrade for higher daily promises (educational example)</div>
-        <a class="btn btn-primary mt-16" href="vip.html">View VIP Levels</a>
-      </div>
-      <div class="card">
-        <h3 class="mt-0">Withdrawal Status</h3>
-        <div class="row-flex">
-          <span class="badge badge-warning">Pending review</span>
-          <span class="muted" style="font-size:13px;">Demo · last request 2026-05-16</span>
+        <h3 class="mt-0">Withdrawal status</h3>
+        <div class="row-flex" id="wdRow">
+          <span class="badge badge-muted">No requests yet</span>
         </div>
         <p class="muted" style="font-size:13px;">
-          Educational note: real scam sites often keep "pending" status for days
-          to discourage users from cashing out and to encourage further deposits.
+          Educational note: real scam sites often keep "pending" status for
+          days to discourage users from cashing out and to encourage further
+          deposits.
         </p>
         <a class="btn" href="withdraw.html">Open withdrawal page</a>
       </div>
@@ -133,38 +127,130 @@
   <script src="assets/js/app.js"></script>
   <script>
     UI.renderShell("Home");
-    const u = DEMO.user;
 
-    document.getElementById("hello").textContent = u.username;
-    document.getElementById("username").textContent = u.username;
-    document.getElementById("avatar").textContent = u.avatar || u.username.slice(0,2).toUpperCase();
-    document.getElementById("vipLvl").textContent = u.vipLevel;
-    document.getElementById("vipLvl2").textContent = u.vipLevel;
-    document.getElementById("vipNext").textContent = u.vipLevel + 1;
-    document.getElementById("balance").textContent = "$" + u.balance.toFixed(2);
-    document.getElementById("todayEarn").textContent = "$" + u.todayEarnings.toFixed(2);
-    document.getElementById("totalEarn").textContent = "$" + u.totalEarnings.toFixed(2);
-    document.getElementById("doneTasks").textContent = u.completedTasks;
-    document.getElementById("refCount").textContent = u.referrals;
+    function statusBadge(s) {
+      const map = {
+        Completed: "badge-success",
+        Pending:   "badge-warning",
+        Rejected:  "badge-danger",
+        Frozen:    "badge-danger",
+      };
+      return `<span class="badge ${map[s] || "badge-muted"}">${s}</span>`;
+    }
 
-    // Render last 5 transactions
-    const tbody = document.getElementById("recentTx");
-    DEMO.transactions.slice(0, 5).forEach(t => {
-      const tr = document.createElement("tr");
-      const sign = t.amount >= 0 ? "+" : "-";
-      const cls = t.amount >= 0 ? "badge-success" : "badge-warning";
-      const statusCls = ({
-        Completed: "badge-success", Pending: "badge-warning",
-        Rejected: "badge-danger", Frozen: "badge-danger",
-      })[t.status] || "badge-muted";
-      tr.innerHTML = `
-        <td>${t.date}</td>
-        <td>${t.type}</td>
-        <td><span class="badge ${cls}">${sign}$${Math.abs(t.amount).toFixed(2)}</span></td>
-        <td><span class="badge ${statusCls}">${t.status}</span></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    function render() {
+      const u = DEMO.user;
+      const v = DEMO.api.getActiveVip();
+      const tasks = DEMO.api.generateDailyTasks();
+      const doneToday = tasks.filter(t => t.completed).length;
+
+      // Header / profile
+      document.getElementById("hello").textContent = u.username;
+      document.getElementById("username").textContent = u.username;
+      document.getElementById("avatar").textContent = u.avatar || u.username.slice(0, 2).toUpperCase();
+      document.getElementById("userIdSuffix").textContent = (u.username || "demo").length * 7;
+
+      const vipBadge = document.getElementById("vipBadge");
+      if (v) {
+        vipBadge.className = "badge badge-gold";
+        vipBadge.textContent = v.name;
+      } else {
+        vipBadge.className = "badge badge-muted";
+        vipBadge.textContent = "No package";
+      }
+
+      // Top banner
+      const banner = document.getElementById("topBanner");
+      banner.innerHTML = v
+        ? `<div class="notice info">
+             Active package <strong>${v.name}</strong> · ${doneToday} / ${v.daily} tasks completed today
+             · <a href="tasks.html">continue tasks</a>
+           </div>`
+        : `<div class="notice danger">
+             <strong>You have no package selected.</strong>
+             Buy a package to start unlocking daily video tasks.
+             <div class="row-flex mt-8">
+               <a class="btn btn-primary btn-sm" href="vip.html">Buy a package</a>
+               <a class="btn btn-sm" href="scam-analysis.html">Why this matters</a>
+             </div>
+           </div>`;
+
+      // Balance & stats
+      document.getElementById("balance").textContent  = "$" + u.balance.toFixed(2);
+      document.getElementById("todayEarn").textContent = "$" + u.todayEarnings.toFixed(2);
+      document.getElementById("totalEarn").textContent = "$" + u.totalEarnings.toFixed(2);
+      document.getElementById("doneTasks").textContent = u.completedTasks;
+      document.getElementById("refCount").textContent  = u.referrals;
+      document.getElementById("todayDelta").textContent =
+        v ? `${doneToday} / ${v.daily} tasks today` : "Buy a package to start";
+
+      // VIP card / buy CTA
+      const vipCard = document.getElementById("vipCard");
+      if (v) {
+        const pct = v.daily > 0 ? Math.round((doneToday / v.daily) * 100) : 0;
+        vipCard.innerHTML = `
+          <h3 class="mt-0">${v.name} — daily progress</h3>
+          <div class="muted mb-8">
+            ${doneToday} of ${v.daily} tasks done today · reward $${DEMO.api.rewardPerTask().toFixed(2)} each
+          </div>
+          <div class="progress"><span style="width:${pct}%;"></span></div>
+          <div class="muted mt-8" style="font-size:12px;">
+            Promised daily income $${v.dailyIncome.toFixed(2)} · monthly $${v.monthlyIncome.toLocaleString()}
+            <em>(educational example — unrealistic by design)</em>
+          </div>
+          <div class="row-flex mt-16">
+            <a class="btn btn-primary" href="tasks.html">Go to tasks</a>
+            <a class="btn" href="vip.html">Manage packages</a>
+          </div>
+        `;
+      } else {
+        vipCard.innerHTML = `
+          <h3 class="mt-0">You don't have a package yet</h3>
+          <p class="muted">
+            Buy a package to set how many daily tasks you get and how much
+            each one pays. Without a package the home screen shows zero
+            progress and zero reward — which is intentional.
+          </p>
+          <div class="row-flex">
+            <a class="btn btn-primary" href="vip.html">Buy a package</a>
+            <a class="btn" href="scam-analysis.html">Why this matters</a>
+          </div>
+        `;
+      }
+
+      // Withdrawal status
+      const wd = DEMO.withdrawals[0];
+      const wdRow = document.getElementById("wdRow");
+      wdRow.innerHTML = wd
+        ? `${statusBadge(wd.status)} <span class="muted" style="font-size:13px;">$${wd.amount.toFixed(2)} on ${wd.date}</span>`
+        : `<span class="badge badge-muted">No requests yet</span>`;
+
+      // Recent activity
+      const tbody = document.getElementById("recentTx");
+      tbody.innerHTML = "";
+      const recent = DEMO.transactions.slice(0, 5);
+      if (!recent.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="muted center">No activity yet — complete a task to populate this list.</td></tr>`;
+      } else {
+        recent.forEach(t => {
+          const sign = t.amount >= 0 ? "+" : "-";
+          const cls  = t.amount >= 0 ? "badge-success" : "badge-warning";
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${t.date}</td>
+            <td>${t.type}</td>
+            <td><span class="badge ${cls}">${sign}$${Math.abs(t.amount).toFixed(2)}</span></td>
+            <td>${statusBadge(t.status)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    render();
+    // Re-render when the user comes back from another tab/page (storage event fires)
+    window.addEventListener("storage", render);
+    window.addEventListener("focus", render);
   </script>
 </body>
 </html>

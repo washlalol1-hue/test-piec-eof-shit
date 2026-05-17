@@ -1,7 +1,9 @@
 <!--
   Withdraw Demo - T-Video Media Demo
-  Educational only. No real payment processing or wallet addresses.
-  Submitting creates a fake "Pending review" record locally.
+
+  Now uses the real demo balance from STATE. Submitting deducts the
+  amount, creates a "Pending" record in withdrawals + transactions,
+  and renders both lists live.
 -->
 <!doctype html>
 <html lang="en">
@@ -21,12 +23,12 @@
       <div class="stat">
         <div class="label">Available demo balance</div>
         <div class="value" id="bal">$0.00</div>
-        <div class="delta">Fake demo points only</div>
+        <div class="delta">Earned from completing daily tasks</div>
       </div>
       <div class="stat">
-        <div class="label">Withdrawal status</div>
-        <div class="value"><span class="badge badge-warning">Pending review</span></div>
-        <div class="delta">Demo placeholder</div>
+        <div class="label">Last withdrawal status</div>
+        <div class="value" id="wdStatus"><span class="badge badge-muted">No requests yet</span></div>
+        <div class="delta" id="wdSubtitle">Submit one below to see it here</div>
       </div>
     </div>
 
@@ -36,7 +38,7 @@
         <div class="grid grid-2">
           <div class="field">
             <label>Amount (demo)</label>
-            <input class="input" id="wdAmt" type="number" min="1" step="1" placeholder="10" required />
+            <input class="input" id="wdAmt" type="number" min="1" step="0.01" placeholder="10" required />
           </div>
           <div class="field">
             <label>Payment address (demo)</label>
@@ -82,9 +84,6 @@
   <script>
     UI.renderShell("Withdraw");
 
-    const u = DEMO.user;
-    document.getElementById("bal").textContent = "$" + u.balance.toFixed(2);
-
     function statusBadge(s) {
       const map = {
         Pending:   "badge-warning",
@@ -95,9 +94,20 @@
       return `<span class="badge ${map[s] || "badge-muted"}">${s}</span>`;
     }
 
-    function renderRows() {
+    function render() {
+      document.getElementById("bal").textContent = "$" + DEMO.user.balance.toFixed(2);
+      const last = DEMO.withdrawals[0];
+      document.getElementById("wdStatus").innerHTML =
+        last ? statusBadge(last.status) : `<span class="badge badge-muted">No requests yet</span>`;
+      document.getElementById("wdSubtitle").textContent =
+        last ? `$${last.amount.toFixed(2)} requested on ${last.date}` : "Submit one below to see it here";
+
       const tbody = document.getElementById("wdRows");
       tbody.innerHTML = "";
+      if (!DEMO.withdrawals.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="muted center">No withdrawal requests yet.</td></tr>`;
+        return;
+      }
       DEMO.withdrawals.forEach(w => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -109,23 +119,16 @@
         tbody.appendChild(tr);
       });
     }
-    renderRows();
+    render();
 
     document.getElementById("wdForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      const amt = parseFloat(document.getElementById("wdAmt").value || "0");
+      const amt  = parseFloat(document.getElementById("wdAmt").value || "0");
       const addr = document.getElementById("wdAddr").value.trim() || "demo-addr-xxxx";
-      if (!amt || amt <= 0) { UI.toast("Enter a demo amount"); return; }
-
-      // Add a fake pending record at the top
-      const today = new Date().toISOString().slice(0, 10);
-      DEMO.withdrawals.unshift({
-        date: today,
-        amount: amt,
-        address: addr.slice(0, 14) + "…",
-        status: "Pending",
-      });
-      renderRows();
+      const r = DEMO.api.submitWithdraw(amt, addr);
+      if (!r.ok) { UI.toast(r.error); return; }
+      e.target.reset();
+      render();
 
       UI.openModal(
         "Withdrawal submitted (Demo)",

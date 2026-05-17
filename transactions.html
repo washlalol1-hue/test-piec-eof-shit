@@ -1,6 +1,8 @@
 <!--
   Transaction History - T-Video Media Demo
-  Educational only. All transactions are fake/local.
+
+  Shows real transaction records from STATE.transactions (task rewards,
+  package activations, withdrawals). Tabs filter by type.
 -->
 <!doctype html>
 <html lang="en">
@@ -66,7 +68,7 @@
         filter === "All" ? true : t.type === filter
       );
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="muted center">No demo records.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="muted center">No demo records yet — complete a task or buy a package to populate this list.</td></tr>`;
         return;
       }
       rows.forEach(t => {

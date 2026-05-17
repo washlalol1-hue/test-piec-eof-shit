@@ -133,10 +133,10 @@
 
     document.getElementById("profileForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      DEMO.user.username = document.getElementById("s_username").value || DEMO.user.username;
-      DEMO.user.email = document.getElementById("s_email").value || DEMO.user.email;
-      DEMO.user.avatar = DEMO.user.username.slice(0,2).toUpperCase();
-      DEMO.saveUser(DEMO.user);
+      DEMO.api.setProfile({
+        username: document.getElementById("s_username").value,
+        email:    document.getElementById("s_email").value,
+      });
       UI.toast("Profile saved (demo only)");
     });
 

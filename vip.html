@@ -1,7 +1,9 @@
 <!--
   VIP Levels - T-Video Media Demo
-  Educational only. All upgrade buttons show a warning modal.
-  Highlights typical "deposit-to-earn-more" scam pattern.
+
+  Buying a package activates that VIP level locally and unlocks the
+  matching number of daily tasks. The educational warning still fires
+  before activation so the project intent is preserved.
 -->
 <!doctype html>
 <html lang="en">
@@ -15,7 +17,7 @@
   <div id="appRoot"></div>
 
   <template id="pageContent">
-    <h1 class="page-title">VIP Levels</h1>
+    <h1 class="page-title">VIP Levels (Packages)</h1>
 
     <div class="notice danger">
       <strong>Suspicious design pattern:</strong> Real scam reward platforms
@@ -27,6 +29,8 @@
         <li>Unrealistic daily returns that no legitimate platform can sustain</li>
       </ul>
     </div>
+
+    <div id="active-banner"></div>
 
     <div class="grid grid-3" id="vipGrid"></div>
 
@@ -41,61 +45,86 @@
   <script>
     UI.renderShell("VIP Levels");
 
-    const grid = document.getElementById("vipGrid");
-    DEMO.vipTiers.forEach(v => {
-      const card = document.createElement("div");
-      card.className = "vip" + (v.featured ? " featured" : "");
-      const lockBadge = v.unlocked
-        ? '<span class="badge badge-success">Unlocked</span>'
-        : '<span class="badge badge-warning">Locked</span>';
-      const featured = v.featured ? '<span class="badge badge-gold">TOP</span>' : "";
+    function render() {
+      const u = DEMO.user;
+      const grid = document.getElementById("vipGrid");
+      grid.innerHTML = "";
 
-      card.innerHTML = `
-        <div class="row-flex space-between">
-          <h3>${v.name}</h3>
-          <div class="row-flex">${featured} ${lockBadge}</div>
-        </div>
-        <div class="muted" style="font-size:13px;">
-          ${v.free ? "Free demo level" : "Demo upgrade price"}
-        </div>
-        <div class="price">$${v.price.toLocaleString()}</div>
-        <ul>
-          <li>📋 ${v.daily} daily tasks</li>
-          <li>💰 Fake daily income: $${v.dailyIncome.toFixed(2)}</li>
-          <li>📈 Fake monthly income: $${v.monthlyIncome.toLocaleString()}</li>
-          <li>${v.unlocked ? "✅ Available now (demo)" : "🔒 Requires fake deposit"}</li>
-        </ul>
-        <button class="btn btn-primary btn-block upgrade-btn" data-name="${v.name}" data-price="${v.price}">
-          ${v.free ? "Current free tier" : "Upgrade (Demo)"}
-        </button>
-      `;
-      grid.appendChild(card);
-    });
+      // Active package banner
+      const banner = document.getElementById("active-banner");
+      const active = DEMO.api.getActiveVip();
+      banner.innerHTML = active
+        ? `<div class="notice info">
+             Active package: <strong>${active.name}</strong> · ${active.daily} daily tasks
+             · reward $${DEMO.api.rewardPerTask().toFixed(2)} per task
+             · <a href="tasks.html">go to tasks</a>
+           </div>`
+        : `<div class="notice">
+             No package selected yet. Tap <strong>Buy</strong> on any tier
+             below to activate it (locally, for the demo).
+           </div>`;
 
-    grid.querySelectorAll(".upgrade-btn").forEach(b => {
-      b.addEventListener("click", () => {
-        const name = b.dataset.name;
-        const price = parseFloat(b.dataset.price);
-        UI.openModal(
-          "Demo VIP upgrade · " + name,
-          `
-            <p>This is a fake VIP upgrade screen for educational purposes.
-            Real scam platforms may pressure users to deposit money to unlock
-            higher earnings.</p>
-            <p class="muted" style="font-size:13px;">
-              You would normally see a payment form here demanding
-              <strong>$${price.toLocaleString()}</strong>. In this demo, no
-              payment is processed and no upgrade is performed.
-            </p>
-            <div class="notice danger" style="margin:8px 0 0;">
-              <strong>Watch out:</strong> if a platform requires deposits to
-              "unlock" earnings, that is a major red flag.
-            </div>
-          `,
-          { confirmText: "Got it" }
-        );
+      DEMO.vipTiers.forEach(v => {
+        const isActive = active && active.level === v.level;
+        const card = document.createElement("div");
+        card.className = "vip" + (v.featured ? " featured" : "");
+        const badges = [];
+        if (v.featured) badges.push('<span class="badge badge-gold">TOP</span>');
+        if (isActive)   badges.push('<span class="badge badge-success">Active</span>');
+
+        card.innerHTML = `
+          <div class="row-flex space-between">
+            <h3>${v.name}</h3>
+            <div class="row-flex">${badges.join("")}</div>
+          </div>
+          <div class="muted" style="font-size:13px;">
+            ${v.free ? "Free demo level" : "Demo upgrade price"}
+          </div>
+          <div class="price">$${v.price.toLocaleString()}</div>
+          <ul>
+            <li>📋 ${v.daily} daily tasks</li>
+            <li>💰 Per-task reward: $${(v.dailyIncome / v.daily).toFixed(2)}</li>
+            <li>📈 Fake daily income: $${v.dailyIncome.toFixed(2)}</li>
+            <li>📅 Fake monthly income: $${v.monthlyIncome.toLocaleString()}</li>
+          </ul>
+          <button class="btn btn-primary btn-block buy-btn"
+                  data-level="${v.level}" data-name="${v.name}" data-price="${v.price}"
+                  ${isActive ? "disabled style='opacity:.6;cursor:not-allowed;'" : ""}>
+            ${isActive ? "Currently active" : (v.free ? "Activate free tier" : "Buy package (Demo)")}
+          </button>
+        `;
+        grid.appendChild(card);
       });
-    });
+
+      grid.querySelectorAll(".buy-btn").forEach(b => {
+        b.addEventListener("click", () => confirmBuy(parseInt(b.dataset.level, 10), b.dataset.name, parseFloat(b.dataset.price)));
+      });
+    }
+
+    function confirmBuy(level, name, price) {
+      const body = `
+        <p>This is a fake VIP upgrade for educational purposes. Real scam
+        platforms may pressure users to deposit money to unlock higher
+        earnings.</p>
+        <p>You are about to activate <strong>${name}</strong>${price > 0 ? ` (demo price <strong>$${price.toLocaleString()}</strong>)` : ""}
+        on this device only. No real payment is processed.</p>
+        <div class="notice danger" style="margin:8px 0 0;">
+          <strong>Watch out:</strong> if a platform requires deposits to
+          "unlock" earnings, that is a major red flag.
+        </div>
+      `;
+      UI.openModal("Activate " + name + "?", body, {
+        confirmText: "Activate package",
+        onConfirm: () => {
+          const r = DEMO.api.buyPackage(level);
+          if (!r.ok) { UI.toast(r.error || "Could not activate"); return; }
+          UI.toast(name + " activated (demo)");
+          render();
+        }
+      });
+    }
+
+    render();
   </script>
 </body>
 </html>

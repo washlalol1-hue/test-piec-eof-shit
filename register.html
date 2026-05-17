@@ -80,9 +80,15 @@
     </div>
   </div>
 
+  <script src="assets/js/data.js"></script>
   <script>
     document.getElementById("registerForm").addEventListener("submit", function (e) {
       e.preventDefault();
+      // Save chosen username/email to local demo state so the dashboard
+      // shows it. No real account is created.
+      const username = document.getElementById("reg_username").value.trim();
+      const email    = document.getElementById("reg_contact").value.trim();
+      if (username || email) DEMO.api.setProfile({ username, email });
       document.getElementById("modal").classList.add("open");
     });
     document.getElementById("closeBtn").addEventListener("click", function () {
